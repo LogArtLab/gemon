@@ -1,17 +1,20 @@
 import csv
+
 import matplotlib.pyplot as plt
+
 from nodes import VariablePWLNode, IntegralWindowNode, MultiplyByConst, HigherThanNode, MinNode
 
 
-def row_iterator(csv_path):
+def get_data_iterator(csv_path):
     with open(csv_path, newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
         next(reader, None)
         for row in reader:
             yield float(row[0]), float(row[1]), float(row[2])
 
-csv_path = 'data/data.csv'
-iterator = row_iterator(csv_path)
+
+data_path = 'data/data.csv'
+data_iterator = get_data_iterator(data_path)
 
 co2 = VariablePWLNode()
 int_co2 = IntegralWindowNode(5)
@@ -50,19 +53,13 @@ LABEL_FONT = 12
 TITLE_FONT = 13
 TICK_FONT = 11
 LEGEND_FONT = 11
+FIG_WIDTH, FIG_HEIGHT = 10, 6  # inches
+DPI = 800
 
-for row_tuple in iterator:
+for row_tuple in data_iterator:
     time, co2_value, temp_value = row_tuple
     co2.receive(time, co2_value)
     temp.receive(time, temp_value)
-
-# ---- Constants (adjust as needed) ----
-LABEL_FONT = 12
-TITLE_FONT = 13
-TICK_FONT = 11
-LEGEND_FONT = 11
-FIG_WIDTH, FIG_HEIGHT = 10, 6  # inches
-DPI = 800
 
 # ---- Create figure & axes ----
 fig, axs = plt.subplots(3, 1,
@@ -101,9 +98,9 @@ axs[1].grid(True)
 axs[2].plot(*and_spec_obs.get_points(),
             color='blue',
             label=(
-              r'$\phi_W(5h,'
-              f'{mean_co2_threshold:.0f},'
-              f'{mean_temperature_threshold:.0f})$'
+                r'$\phi_W(5h,'
+                f'{mean_co2_threshold:.0f},'
+                f'{mean_temperature_threshold:.0f})$'
             ))
 axs[2].set_title(r'$\phi_W$ Formula', fontsize=TITLE_FONT)
 axs[2].legend(fontsize=LEGEND_FONT, loc='upper left')

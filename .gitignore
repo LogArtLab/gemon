@@ -2,3 +2,5 @@
 old/
 .idea/
 __pycache__/
+usecase/cgm/fig/gif/**
+usecase/weather/fig/gif/**
