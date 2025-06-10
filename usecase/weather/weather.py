@@ -1,5 +1,5 @@
 import csv
-
+import matplotlib.pyplot as plt
 from nodes import VariablePWLNode, IntegralWindowNode, MultiplyByConst, HigherThanNode, MinNode
 
 
@@ -9,7 +9,6 @@ def row_iterator(csv_path):
         next(reader, None)
         for row in reader:
             yield float(row[0]), float(row[1]), float(row[2])
-
 
 csv_path = 'data/data.csv'
 iterator = row_iterator(csv_path)
@@ -52,14 +51,6 @@ TITLE_FONT = 13
 TICK_FONT = 11
 LEGEND_FONT = 11
 
-import matplotlib.pyplot as plt
-
-# === Figure 1: CGM + TAR% + TBR% ===
-#fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True, gridspec_kw={'hspace': 0.35})
-# locator = mdates.MinuteLocator(interval=1)
-# formatter = mdates.DateFormatter('%M')
-# --- Thresholds and rolling window ---
-frame_idx = 0
 for row_tuple in iterator:
     time, co2_value, temp_value = row_tuple
     co2.receive(time, co2_value)
@@ -71,7 +62,6 @@ TITLE_FONT = 13
 TICK_FONT = 11
 LEGEND_FONT = 11
 FIG_WIDTH, FIG_HEIGHT = 10, 6  # inches
-
 DPI = 800
 
 # ---- Create figure & axes ----
@@ -81,14 +71,13 @@ fig, axs = plt.subplots(3, 1,
 
 # ---- CO2 panel ----
 axs[0].plot(*co2_obs.get_points(),
-            label='CO₂', color='black',
+            label='CO₂ (ppm)', color='black',
             marker='o', markersize=1.5, linestyle='-')
 axs[0].plot(*mean_co2_obs.get_points(),
             color='red', label='Mean CO₂', linestyle='-')
 axs[0].axhline(mean_co2_threshold,
                color='red', linestyle='--', linewidth=1,
                label=f'Mean CO₂ Threshold ({mean_co2_threshold:.0f})')
-axs[0].set_ylabel('CO₂ (ppm)', fontsize=LABEL_FONT)
 axs[0].set_title('Atmospheric CO₂ Observations', fontsize=TITLE_FONT)
 axs[0].legend(fontsize=LEGEND_FONT, loc='upper left')
 axs[0].tick_params(labelsize=TICK_FONT)
@@ -96,14 +85,13 @@ axs[0].grid(True)
 
 # ---- Temperature panel ----
 axs[1].plot(*temp_obs.get_points(),
-            label='Temperature', color='black',
+            label='Temperature (°C)', color='black',
             marker='o', markersize=1.5, linestyle='-')
 axs[1].plot(*mean_temp_obs.get_points(),
             color='red', label='Mean Temperature', linestyle='-')
 axs[1].axhline(mean_temperature_threshold,
                color='red', linestyle='--', linewidth=1,
                label=f'Mean Temp Threshold ({mean_temperature_threshold:.0f})')
-axs[1].set_ylabel('Temperature (°C)', fontsize=LABEL_FONT)
 axs[1].set_title('Temperature Observations', fontsize=TITLE_FONT)
 axs[1].legend(fontsize=LEGEND_FONT, loc='upper left')
 axs[1].tick_params(labelsize=TICK_FONT)
@@ -117,7 +105,6 @@ axs[2].plot(*and_spec_obs.get_points(),
               f'{mean_co2_threshold:.0f},'
               f'{mean_temperature_threshold:.0f})$'
             ))
-axs[2].set_ylabel(r'$\phi_W$', fontsize=LABEL_FONT)
 axs[2].set_title(r'$\phi_W$ Formula', fontsize=TITLE_FONT)
 axs[2].legend(fontsize=LEGEND_FONT, loc='upper left')
 axs[2].tick_params(labelsize=TICK_FONT)
@@ -128,11 +115,10 @@ axs[-1].set_xlabel('Time (h)', fontsize=LABEL_FONT)
 plt.tight_layout()
 
 # Export high‐res files for publication
-fig.savefig('fig/figure_weather.pdf',
+plt.savefig('fig/figure_weather.pdf',
             dpi=DPI, bbox_inches='tight')
-fig.savefig('fig/figure_weather.png',
+plt.savefig('fig/figure_weather.png',
             dpi=DPI, bbox_inches='tight')
 
 # Optionally display in‐script
 plt.show()
-
