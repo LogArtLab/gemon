@@ -21,22 +21,22 @@ A Python framework for specifying temporal logic formulae in a modular way and e
 ## Overview
 
 This project provides a purely Python-based framework for:
-- **Modular specification** of temporal logic formulae (e.g., LTL or similar) in terms of atomic elements, operators, and composition.
-- **Online (incremental) evaluation** of such formulae against input streams of symbolic states or events.
+- **Modular specification** of temporal logic formulae in terms of atomic elements, operators, and composition.
+- **Online (incremental) evaluation** of such formulae against input streams of symbolic states.
 - **Notifiers** to trigger callbacks or actions when specified temporal conditions become true (or false).
-- **Example use cases** (e.g., weather monitoring) illustrating how to apply the framework to real-time data streams or simulations.
+- **Example use cases** (e.g., weather monitoring and continuous glucose monitoring) illustrating how to apply the framework to real-time data streams.
 
 ---
 
 ## Features
 
 - **Elementary building blocks**: define predicates, signals, or atomic conditions as Python callables or expressions.
-- **Temporal operators**: combine elements with temporal constructs (e.g., eventually, always, until).
+- **Temporal operators**: combine elements with temporal constructs.
 - **Online evaluation engine**: processes incoming symbolic states one at a time, updating formula evaluation in constant or optimal time.
 - **Notifiers / Callbacks**: register handlers that fire when a formula is satisfied and/or violated.
 - **Modular design**: easy to extend with new predicate types, operators, or custom notifiers.
 - **Test suite**: unit tests for core modules to ensure correctness.
-- **Example use cases**: demonstrations (e.g., in `usecase/weather`) showing how to integrate with data sources and drive the evaluation engine.
+- **Example use cases**: demonstrations (`usecase/weather` and `usecase/cgm`) showing how to integrate with data sources and drive the evaluation engine.
 
 ---
 
@@ -78,25 +78,10 @@ gemon/
     └── weather/         # Example related to weather monitoring
     └── cgm/             # Example related to CGM monitoring
 ```
-
+---
 ## Use Cases / Examples
 
-Under `usecase/`, example scripts demonstrate application of the framework.
-
-### Weather Use Case (`usecase/weather`)
-Likely workflow:
-1. **Data source**: fetch or simulate weather data (temperature, humidity, etc.).
-2. **Atomic predicates**: e.g., “temperature above threshold”, “humidity below limit”.
-3. **Temporal formulae**: e.g., “if temperature stays above X for Y time units then trigger alert”.
-4. **Notifiers**: register callbacks to log or alert when conditions are met.
-5. **Online loop**: periodically fetch data and feed to the evaluation engine.
-6. **Results**: save logs, plots, or send notifications.
-To run the example:
-```bash
-cd usecase/weather
-python weather.py
-```
-Modify parameters or configuration within `weather.py` as needed.
+Under `usecase/`, example scripts demonstrate application of the framework. Please refer to `usecase/weather` or `usecase/cgm`.
 
 ---
 
@@ -117,6 +102,6 @@ Ensure your virtual environment is active and dependencies installed.
 ## Contact
 
 For questions or feedback, contact the authors:
-- Simone Silvetti
-- Michele Loreti
-- Laura Nenzi
+- Simone Silvetti (University of Trieste)
+- Michele Loreti (University of Camerino)
+- Laura Nenzi (University of Trieste)
