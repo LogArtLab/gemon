@@ -82,9 +82,12 @@ gemon/
 ## Use Cases / Examples
 
 Under `usecase/`, example scripts demonstrate application of the framework. Please refer to `usecase/weather` or `usecase/cgm`.
+
+### Weather Events
+![Alt Text](https://github.com/LogArtLab/gemon/blob/main/usecase/weather/fig/gif_weather.gif)
+
 ### Artificial Pancreas
 ![Alt Text](https://github.com/LogArtLab/gemon/blob/main/usecase/cgm/fig/gif_cgm.gif)
-
 ---
 
 ## Testing
