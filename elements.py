@@ -480,32 +480,135 @@ class Integral(WindowOperator):
     def add(self, interval: Interval):
         self.value += interval.integrate()
 
-    def __step(self, added, removed):
-        intervals = (added.integral() - (removed.integral()) + Interval(removed.start, removed.end,
-                                                                        Polynomial.constant(
-                                                                            self.value)),)
-        self.value += added.integrate() - removed.integrate()
-        return intervals
-
     def move(self, removed: Interval, added: Interval):
         added_above = added.move_above(removed)
-        zeros = removed.zeros(added_above)
-        if zeros and removed.end > zeros[0] > removed.start:
-            removed_left, removed_right = removed.split(zeros[0] - removed.start)
-            added_above_left, added_above_right = added_above.split(zeros[0] - added_above.start)
-            return self.__step(added_above_left, removed_left) + self.__step(added_above_right, removed_right)
-            # left = added_above_left.integral() - (removed_left.integral()) + Interval(removed_left.start,
-            #                                                                           removed_left.end,
-            #                                                                           Polynomial.constant(
-            #                                                                               self.value))
-            # right = added_above_right.integral() - (removed_right.integral()) + Interval(removed_right.start,
-            #                                                                              removed_right.end,
-            #                                                                              Polynomial.constant(
-            #                                                                                  self.value))
-            # intervals =  (left, right)
+        removed_integral = removed.function.integral()
+        added_integral = added_above.function.integral()
+        function = Polynomial.constant(self.value + removed_integral(removed.start) - added_integral(
+            added_above.start)) + added_integral - removed_integral
+        self.value = function(removed.end)
+        return (Interval(removed.start, removed.end, function),)
 
+
+class MinMonotonicEdge:
+
+    def __init__(self):
+        self.intervals = []
+
+    def add(self, interval: Interval):
+        start = None
+        if interval.is_increasing():
+            value = interval.function(interval.start)
+            new_interval = interval
         else:
-            return self.__step(added_above, removed)
+            value = interval.function(interval.end)
+            new_interval = Interval(interval.start, interval.end, Polynomial.constant(value))
+        while self.intervals and self.intervals[-1].function(self.intervals[-1].start) > value:
+            removed = self.intervals.pop()
+            start = removed.start
+        if self.intervals:
+            zeros = (self.intervals[-1].function - Polynomial.constant(value)).zeros()
+            if zeros:
+                zero = zeros[0]
+                left, right = self.intervals[0].split(zero - self.intervals[0].start)
+                self.intervals[-1] = left
+                start = left.end
+        if start is not None and start != new_interval.start:
+            self.intervals.append(Interval(start, new_interval.start, Polynomial.constant(value)))
+        self.intervals.append(new_interval)
+
+    def remove(self, length: float):
+        removed = []
+        partial = 0
+        while partial < length:
+            candidate = self.intervals.pop(0)
+            if candidate.length() <= length - partial:
+                removed.append(candidate)
+                partial += candidate.length()
+            else:
+                cut = length - partial
+                left, right = candidate.split(cut)
+                removed.append(left)
+                self.intervals.insert(0, right)
+                partial = length
+        return removed
+
+class MaxMonotonicEdge:
+
+    def __init__(self):
+        self.intervals = []
+
+    def add(self, interval: Interval):
+        start = None
+        if interval.is_increasing():
+            value = interval.function(interval.end)
+            new_interval = Interval(interval.start, interval.end, Polynomial.constant(value))
+        else:
+            value = interval.function(interval.start)
+            new_interval = interval
+        while self.intervals and self.intervals[-1].function(self.intervals[-1].start) < value:
+            removed = self.intervals.pop()
+            start = removed.start
+        if self.intervals:
+            zeros = (self.intervals[-1].function - Polynomial.constant(value)).zeros()
+            if zeros:
+                zero = zeros[0]
+                left, right = self.intervals[0].split(zero - self.intervals[0].start)
+                self.intervals[-1] = left
+                start = left.end
+        if start is not None and start != new_interval.start:
+            self.intervals.append(Interval(start, new_interval.start, Polynomial.constant(value)))
+        self.intervals.append(new_interval)
+
+    def remove(self, length: float):
+        removed = []
+        partial = 0
+        while partial < length:
+            candidate = self.intervals.pop(0)
+            if candidate.length() <= length - partial:
+                removed.append(candidate)
+                partial += candidate.length()
+            else:
+                cut = length - partial
+                left, right = candidate.split(cut)
+                removed.append(left)
+                self.intervals.insert(0, right)
+                partial = length
+        return removed
+
+class MinLemire(WindowOperator):
+
+    def __init__(self):
+        self.monotonic_edge = MinMonotonicEdge()
+
+    def add(self, interval: Interval):
+        self.monotonic_edge.add(interval)
+
+    def move(self, removed: Interval, added: Interval):
+        self.monotonic_edge.add(added)
+        return self.monotonic_edge.remove(removed.length())
+
+
+class MaxLemire(WindowOperator):
+
+    def __init__(self):
+        self.monotonic_edge = MaxMonotonicEdge()
+
+    def add(self, interval: Interval):
+        self.monotonic_edge.add(interval)
+
+    def move(self, removed: Interval, added: Interval):
+        results = []
+        firsts = self.monotonic_edge.remove(added.length())
+        for first in firsts:
+            if first > added:
+                results.append(first)
+                self.monotonic_edge.add(first)
+
+
+
+        self.monotonic_edge.add(added)
+        return self.monotonic_edge.remove(removed.length())
 
 
 class Min(WindowOperator):
@@ -535,6 +638,7 @@ class Min(WindowOperator):
             min_intervals.extend(interval.min_interval(added_shifted.project_onto(interval)))
         self.add(added)
         return min_intervals
+
 
 class Min2(WindowOperator):
 

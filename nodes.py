@@ -362,48 +362,7 @@ class MinOptimalWindowNode(IntervalNotifier):
             self.notify_multiple(vout)
 
 
-class MonotonicEdge:
 
-    def __init__(self):
-        self.intervals = []
-
-    def add(self, interval:Interval):
-        start = None
-        if interval.is_increasing():
-            value = interval.function(interval.start)
-            new_interval = interval
-        else:
-            value = interval.function(interval.end)
-            new_interval = Interval(interval.start, interval.end, Polynomial.constant(value))
-        while self.intervals and self.intervals[-1].function(self.intervals[-1].start) > value:
-            removed = self.intervals.pop()
-            start = removed.start
-        if self.intervals:
-            zeros = (self.intervals[-1].function - Polynomial.constant(value)).zeros()
-            if zeros:
-                zero = zeros[0]
-                left, right = self.intervals[0].split(zero)
-                self.intervals[-1] = left
-                start = left.end
-        if start is not None and start != new_interval.start:
-            self.intervals.append(Interval(start,new_interval.start,Polynomial.constant(value)))
-        self.intervals.append(new_interval)
-
-    def remove(self, length:float):
-        removed = []
-        partial = 0
-        while partial<length:
-            candidate = self.intervals.pop(0)
-            if candidate.length() <= length-partial:
-                removed.append(candidate)
-                partial += candidate.length()
-            else:
-                cut = length - partial
-                left, right = candidate.split(cut)
-                removed.append(left)
-                self.intervals.insert(0,right)
-                partial = length
-        return removed
 
 
 
