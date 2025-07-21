@@ -53,7 +53,7 @@ LABEL_FONT = 12
 TITLE_FONT = 13
 TICK_FONT = 11
 LEGEND_FONT = 11
-FIG_WIDTH, FIG_HEIGHT = 10, 6  # inches
+FIG_WIDTH, FIG_HEIGHT = 10, 8  # inches
 DPI = 800
 
 for row_tuple in data_iterator:

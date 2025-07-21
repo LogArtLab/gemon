@@ -80,7 +80,7 @@ LABEL_FONT = 12
 TITLE_FONT = 13
 TICK_FONT = 11
 LEGEND_FONT = 11
-FIG_WIDTH, FIG_HEIGHT = 10, 6  # inches
+FIG_WIDTH, FIG_HEIGHT = 10, 8  # inches
 DPI = 800
 
 # === Figure 1: CGM + TAR% + TBR% ===
@@ -112,7 +112,7 @@ axs[1].grid(True)
 
 # TBR %
 points = remove_zeros(mean_glucose_filtered_AR.get_points())
-axs[2].scatter(*(points), color='k', label='$\psi_{\mu GBR} = und$', s=30, marker="s")
+axs[2].scatter(*(points), color='k', label='$\psi_{\mu GBR} = NaN$', s=30, marker="s")
 axs[2].plot(*(mean_glucose_filtered_AR.get_points()), color='red', label='$\psi_{\mu GAR}$')
 axs[2].set_title('Mean Glucose conditional to level above 180 mg/dL', fontsize=TITLE_FONT)
 axs[2].legend(fontsize=LEGEND_FONT)
@@ -121,7 +121,7 @@ axs[2].grid(True)
 
 # TBR %
 points = remove_zeros(mean_glucose_filtered_BR.get_points())
-axs[3].scatter(*(points), color='k', label='$\psi_{\mu GBR} = und$', s=30, marker="s")
+axs[3].scatter(*(points), color='k', label='$\psi_{\mu GBR} = NaN$', s=30, marker="s")
 axs[3].plot(*(mean_glucose_filtered_BR.get_points()), color='blue', label='$\psi_{\mu GBR}$')
 axs[3].set_title('Mean Glucose conditional to level below 70 mg/dL', fontsize=TITLE_FONT)
 axs[3].legend(fontsize=LEGEND_FONT)
