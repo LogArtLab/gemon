@@ -2,7 +2,7 @@ import csv
 
 import matplotlib.pyplot as plt
 
-from nodes import VariablePWLNode, IntegralWindowNode, MultiplyByConst, HigherThanNode, MinNode
+from gemon.nodes import VariablePWLNode, IntegralWindowNode, MultiplyByConst, HigherThanNode, MinNode
 
 
 def get_data_iterator(csv_path):

@@ -1,8 +1,8 @@
 from collections import namedtuple
 from typing import Tuple, List
 
-from functions import Polynomial, UndefinedFunction
-from notifiers import WindowIntervalNotifier
+from gemon.functions import Polynomial, UndefinedFunction
+from gemon.notifiers import WindowIntervalNotifier
 
 TimedValue = namedtuple('TimedValue', ['time', 'value'])
 EPS = 1e-5

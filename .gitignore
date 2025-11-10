@@ -2,5 +2,7 @@
 old/
 .idea/
 __pycache__/
-usecase/cgm/fig/gif/**
-usecase/weather/fig/gif/**
+examples/RV2025/cgm/fig/gif/**
+examples/RV2025/weather/fig/gif/**
+*.egg-info/
+venv/

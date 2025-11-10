@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gemon"
+version = "1.0.0"
+description = "GEMON is a modular and efficient tool for monitoring of temporal logic specification"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Simone Silvetti", email = "simone.silvetti@gmail.com" },
+    { name = "Laura Nenzi", email = "lnenzi@units.it" },
+    { name = "Michele Loreti", email = "michele.loreti@unicam.it" }]
+
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "pandas",
+    "python-dateutil",
+    "pytz",
+    "tzdata"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "Pygments",
+    "PyQt6",
+    "PyQt6-Qt6",
+    "PyQt6_sip",
+    "fonttools",
+    "cycler",
+    "packaging",
+    "pluggy",
+    "kiwisolver",
+    "pillow",
+    "pyparsing",
+    "six",
+    "contourpy",
+    "iniconfig"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gemon*"]
+
+# Optional: include package data inside mypkg/ if you have any data files there
+[tool.setuptools]
+include-package-data = false
+
+[project.urls]
+Homepage = "https://github.com/LogArtLab/gemon"
+Issues = "https://github.com/LogArtLab/gemon/issues"

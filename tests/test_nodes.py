@@ -1,6 +1,6 @@
-from elements import Interval, MinMonotonicEdge
-from functions import Polynomial
-from nodes import MinOptimalWindowNode, MinOptimalWindowNode2
+from gemon.elements import Interval, MinMonotonicEdge
+from gemon.functions import Polynomial
+from gemon.nodes import MinOptimalWindowNode2
 
 
 def test_receive():

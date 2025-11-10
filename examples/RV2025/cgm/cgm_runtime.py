@@ -3,7 +3,7 @@ import csv
 
 import matplotlib.pyplot as plt
 
-from nodes import VariablePWLNode, IntegralWindowNode, MultiplyByConst, HigherThanNode, LowerThanNode, FilterNode
+from gemon.nodes import VariablePWLNode, IntegralWindowNode, MultiplyByConst, HigherThanNode, LowerThanNode, FilterNode
 
 
 def remove_zeros(points):

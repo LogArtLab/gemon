@@ -2,9 +2,9 @@
 from unittest.mock import MagicMock, call
 import pytest
 
-from elements import Interval, Integral, Min, Max, Intervals, TimedValue, IntervalValued, \
+from gemon.elements import Interval, Integral, Min, Max, Intervals, TimedValue, IntervalValued, \
     WindowInterval
-from functions import Polynomial
+from gemon.functions import Polynomial
 
 
 def test_integrate_constant():

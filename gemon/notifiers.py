@@ -23,7 +23,7 @@ class Signal:
                 for time in times:
                     t.append(time)
                     x.append(interval.function(time))
-        return t,x
+        return t, x
 
 
 class IntervalNotifier:
@@ -46,6 +46,7 @@ class IntervalNotifier:
         signal = Signal()
         self.to(signal.append)
         return signal
+
 
 class WindowIntervalNotifier:
     def __init__(self):

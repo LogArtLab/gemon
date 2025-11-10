@@ -1,7 +1,7 @@
-from elements import Interval, WindowOperator, Integral, Min, Max, IntervalOperators, WindowInterval, \
+from gemon.elements import Interval, WindowOperator, Integral, Max, IntervalOperators, WindowInterval, \
     Min2
-from functions import Polynomial, UndefinedFunction
-from notifiers import IntervalNotifier
+from gemon.functions import Polynomial
+from gemon.notifiers import IntervalNotifier
 
 
 class VariablePWLNode(IntervalNotifier):
@@ -41,6 +41,7 @@ class VariableNode(IntervalNotifier):
 
     def receive(self, interval: 'Interval'):
         self.notify(interval)
+
 
 class UnaryNode(IntervalNotifier):
 
@@ -272,45 +273,56 @@ class IntegralWindowNode(WindowNode):
     def __init__(self, length: float):
         super().__init__(WindowInterval(length), Integral())
 
+
 class MinWindowNode(WindowNode):
     def __init__(self, length: float):
         super().__init__(WindowInterval(length), Min2())
+
 
 class MaxWindowNode(WindowNode):
     def __init__(self, length: float):
         super().__init__(WindowInterval(length), Max())
 
+
 class MinNode(BinaryNode):
     def __init__(self):
         super().__init__(IntervalOperators.min())
+
 
 class MaxNode(BinaryNode):
     def __init__(self):
         super().__init__(IntervalOperators.max())
 
+
 class SumNode(BinaryNode):
     def __init__(self):
         super().__init__(IntervalOperators.add())
+
 
 class SubNode(BinaryNode):
     def __init__(self):
         super().__init__(IntervalOperators.sub())
 
+
 class HigherThanNode(UnaryNode):
     def __init__(self, threshold):
         super().__init__(IntervalOperators.higher_than(threshold))
+
 
 class LowerThanNode(UnaryNode):
     def __init__(self, threshold):
         super().__init__(IntervalOperators.lower_than(threshold))
 
+
 class ShiftNode(UnaryNode):
     def __init__(self, delta):
         super().__init__(IntervalOperators.shift(delta))
 
+
 class MultiplyByConst(UnaryNode):
     def __init__(self, value):
         super().__init__(IntervalOperators.mult_const(value))
+
 
 class FilterNode(BinaryNode):
     def __init__(self):
@@ -327,7 +339,7 @@ class MinOptimalWindowNode(IntervalNotifier):
     def receive(self, add_interval: 'Interval'):
         vout = []
         if not self.intervals:
-            window_length = 0 
+            window_length = 0
         else:
             window_length = self.intervals[-1].end - self.intervals[0].start
         to_slide = add_interval.length() - (self.length - window_length)
@@ -335,7 +347,7 @@ class MinOptimalWindowNode(IntervalNotifier):
             value = add_interval.function(add_interval.start)
         else:
             value = add_interval.function(add_interval.end)
-        while self.intervals and self.intervals[-1].function(self.intervals[-1].start)>value:
+        while self.intervals and self.intervals[-1].function(self.intervals[-1].start) > value:
             self.intervals.pop()
             if self.intervals:
                 zeros = (self.intervals[-1].function - Polynomial.constant(value)).zeros()
@@ -345,25 +357,22 @@ class MinOptimalWindowNode(IntervalNotifier):
                     self.intervals[-1] = left
                     self.intervals.append(Interval(left.end, add_interval.start, Polynomial.constant(value)))
                 else:
-                    self.intervals.append(Interval(self.intervals[0].end, add_interval.start, Polynomial.constant(value)))
+                    self.intervals.append(
+                        Interval(self.intervals[0].end, add_interval.start, Polynomial.constant(value)))
         new_add_interval = Interval(add_interval.start, add_interval.end, Polynomial.constant(value))
         self.intervals.append(new_add_interval)
-        if to_slide>0:
+        if to_slide > 0:
             first_state_length = self.intervals[0].length()
             while first_state_length <= to_slide:
                 vout.append(self.intervals.pop(0))
                 to_slide -= first_state_length
                 first_state_length = self.intervals[0].length()
-            if to_slide>0:
-                left , right = self.intervals[0].split(self.intervals[0].start + to_slide)
+            if to_slide > 0:
+                left, right = self.intervals[0].split(self.intervals[0].start + to_slide)
                 vout.append(left)
                 self.intervals[0] = right
         if vout:
             self.notify_multiple(vout)
-
-
-
-
 
 
 class MinOptimalWindowNode2(IntervalNotifier):
@@ -405,15 +414,15 @@ class MinOptimalWindowNode2(IntervalNotifier):
                 self.intervals.append(new_add_interval)
                 self.end_window = new_add_interval.end
         to_slide = self.intervals[-1].end - self.start_window - self.length
-        vout=[]
-        while to_slide>0:
+        vout = []
+        while to_slide > 0:
             first_state_length = self.intervals[0].length()
             while first_state_length <= to_slide:
                 remove = self.intervals.pop(0)
                 vout.append(remove)
                 to_slide -= first_state_length
                 self.start_window = remove.end
-            if to_slide>0:
+            if to_slide > 0:
                 left, right = self.intervals[0].split(self.intervals[0].start + to_slide)
                 vout.append(left)
                 self.intervals[0] = right
