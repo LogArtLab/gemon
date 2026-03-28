@@ -129,14 +129,14 @@ class NaryNode(IntervalNotifier):
 
     def __merge(self):
         starts = [l[0].start for l in self.locations.values()]
-        end = [l[0].end for l in self.locations.values()]
         min_starts = min(starts)
         max_starts = max(starts)
         if min_starts != max_starts:
             self.notify(Interval(min_starts, max_starts, Polynomial.undefined()))
-            for l in self.locations:
-                l[0] = l[0].split(max_starts - min_starts)[1]
-        min_end = min(end)
+            for l in self.locations.values():
+                if l[0].start < max_starts:
+                    l[0] = l[0].split(max_starts - l[0].start)[1]
+        min_end = min(l[0].end for l in self.locations.values())
         cut = []
         for l in self.locations.values():
             l_end = l[0].end
