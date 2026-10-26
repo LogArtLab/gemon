@@ -1,3 +1,5 @@
+from collections import deque
+
 from gemon.elements import Interval, WindowOperator, Integral, IntervalOperators, WindowInterval, WindowExtremum
 from gemon.functions import Polynomial
 from gemon.notifiers import IntervalNotifier
@@ -62,8 +64,8 @@ class BinaryNode(IntervalNotifier):
 
     def __init__(self, operator):
         super().__init__()
-        self.left = []
-        self.right = []
+        self.left = deque()
+        self.right = deque()
         self.operator = operator
 
     def __merge(self):
@@ -78,29 +80,29 @@ class BinaryNode(IntervalNotifier):
         elif left.end < right.end:
             right_left, right_right = right.split_at(left.end)
             self.right[0] = right_right
-            self.left.pop(0)
+            self.left.popleft()
             self.notify_multiple(self.operator(left, right_left))
             # self.notify(left.apply_binary_operator(self.operator, right_left))
         elif right.end < left.end:
             left_left, left_right = left.split_at(right.end)
             self.left[0] = left_right
-            self.right.pop(0)
+            self.right.popleft()
             self.notify_multiple(self.operator(left_left, right))
             # self.notify(left_left.apply_binary_operator(self.operator, right))
         else:
-            self.left.pop(0)
-            self.right.pop(0)
+            self.left.popleft()
+            self.right.popleft()
             self.notify_multiple(self.operator(left, right))
             # self.notify(left.apply_binary_operator(self.operator, right))
 
     def receive_left(self, interval: 'Interval'):
         self.left.append(interval)
-        while len(self.left) > 0 and len(self.right) > 0:
+        while self.left and self.right:
             self.__merge()
 
     def receive_right(self, interval: 'Interval'):
         self.right.append(interval)
-        while len(self.left) > 0 and len(self.right) > 0:
+        while self.left and self.right:
             self.__merge()
 
 
@@ -108,27 +110,22 @@ class NaryNode(IntervalNotifier):
 
     def __init__(self, operator):
         super().__init__()
-        self.locations = dict()
+        self.locations = dict()   # input name -> queue of intervals
+        self.empty = 0            # number of empty queues: merge when it is 0
         self.operator = operator
 
-    # def __get_location_from_name(self, location_name):
-    #     if location_name not in self.locations:
-    #         self.locations[location_name] = []
-    #     return self.locations[location_name]
-
-    def __should_merge(self):
-        for locations in self.locations.values():
-            if not locations:
-                return False
-        return True
-
     def add_receiver(self, location_name):
-        self.locations[location_name] = []
+        previous = self.locations.get(location_name)
+        if previous is None or previous:
+            self.empty += 1
+        self.locations[location_name] = deque()
 
     def receive(self, location_name, interval):
         locations = self.locations[location_name]
+        if not locations:
+            self.empty -= 1
         locations.append(interval)
-        while self.__should_merge():
+        while self.empty == 0:
             self.__merge()
 
     def __merge(self):
@@ -149,7 +146,9 @@ class NaryNode(IntervalNotifier):
                 cut.append(l_left)
                 l[0] = l_right
             else:
-                cut.append(l.pop(0))
+                cut.append(l.popleft())
+                if not l:
+                    self.empty += 1
         self.notify(self.operator(cut))
 
 
