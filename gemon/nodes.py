@@ -12,12 +12,15 @@ class VariablePWLNode(IntervalNotifier):
         self.value = None
 
     def receive(self, time, value):
-        if self.time is not None:
-            m = (value - self.value) / (time - self.time)
-            q = self.value - self.time * m
-            self.notify(Interval(self.time, time, Polynomial.linear(m, q)))
+        # the state is updated before notifying: if a downstream node raises, the
+        # sample is not lost and the next interval still starts at this one
+        previous_time, previous_value = self.time, self.value
         self.time = time
         self.value = value
+        if previous_time is not None:
+            m = (value - previous_value) / (time - previous_time)
+            q = previous_value - previous_time * m
+            self.notify(Interval(previous_time, time, Polynomial.linear(m, q)))
 
 
 class VariablePWCNode(IntervalNotifier):
@@ -28,10 +31,12 @@ class VariablePWCNode(IntervalNotifier):
         self.value = None
 
     def receive(self, time, value):
-        if self.time is not None:
-            self.notify(Interval(self.time, time, Polynomial.constant(self.value)))
+        # state updated before notifying, as in VariablePWLNode
+        previous_time, previous_value = self.time, self.value
         self.time = time
         self.value = value
+        if previous_time is not None:
+            self.notify(Interval(previous_time, time, Polynomial.constant(previous_value)))
 
 
 class VariableNode(IntervalNotifier):

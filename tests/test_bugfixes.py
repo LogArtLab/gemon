@@ -47,3 +47,27 @@ def test_nary_node_cuts_at_exact_bounds():
         node.receive("y", Interval(b, m, Polynomial.constant(2)))
         node.receive("y", Interval(m, c + 1, Polynomial.constant(3)))
         assert [(i.start, i.end) for i in out] == [(a, b), (b, m), (m, c)]
+
+
+def test_input_nodes_keep_their_sample_when_downstream_raises():
+    # The input nodes updated their state after notifying: when a downstream node
+    # raised, the sample was lost and the next interval overlapped the previous one.
+    from gemon.nodes import VariablePWCNode, VariablePWLNode
+    for cls in (VariablePWCNode, VariablePWLNode):
+        node = cls()
+        out = []
+        node.to(out.append)
+        failures = iter([False, True, False, False])
+
+        def flaky(interval):
+            if next(failures):
+                raise RuntimeError("downstream failure")
+
+        node.to(flaky)
+        for t, v in [(0, 1.0), (1, 2.0), (2, 3.0)]:
+            try:
+                node.receive(t, v)
+            except RuntimeError:
+                pass
+        node.receive(3, 4.0)
+        assert [(i.start, i.end) for i in out] == [(0, 1), (1, 2), (2, 3)]

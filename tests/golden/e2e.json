@@ -282,13 +282,13 @@
   },
   "synthetic_optimal_windows_pwc": {
     "_errors": {
-      "count": 8,
+      "count": 7,
       "first": "x_min_optimal2@10.6432185257663: IndexError: pop from empty list",
-      "sha256": "f76e9a845eb1dc6924d235ebd8b67b21a7e30ecae48f358bc0c8f04f0df38354"
+      "sha256": "996a0b4cc0f452d4244b1eaebb939b74cdb2320939789226c732604a3600b405"
     },
     "min_optimal2_2.5": {
       "intervals": 11,
-      "sha256": "ae826d6517a56cc6449d1abc083ee78c629ea217f91b212c7f5d1e6afca30fc7"
+      "sha256": "004b510da8968b9b432472a1957a83c03b07dc3de7285cc674085e287181eaa7"
     },
     "min_optimal_2.5": {
       "intervals": 193,
@@ -300,18 +300,18 @@
     },
     "x_min_optimal2": {
       "intervals": 299,
-      "sha256": "2e1fc246936fb5a8ed1d92d62bf45ba4e9bcd3adc89956a6f0ebc5042ee29b64"
+      "sha256": "51a0b0f315d6d9f7c0b5ac770142c4853c03ed03a84af2e8bbc4975c99e33906"
     }
   },
   "synthetic_optimal_windows_pwl": {
     "_errors": {
-      "count": 7,
+      "count": 8,
       "first": "x_min_optimal2@5.513124539406394: IndexError: list index out of range",
-      "sha256": "1c753e950a5eeee2f87f862800ef90c16c5cfcb77a04074a5f9ec523eedb50e6"
+      "sha256": "42211f63e2e4cf90c0845cc8f87c7028d4d873d0c4d50fc115ad0fd18ab67a13"
     },
     "min_optimal2_2.5": {
       "intervals": 6,
-      "sha256": "faf4379330aa8369fea150a436fea86ad41152ec8bfe9d0ad6f859d4684156e3"
+      "sha256": "d20ef91a05ad674037b088cb7ac1be970a90b32d467eb04543ee403f9dc27184"
     },
     "min_optimal_2.5": {
       "intervals": 207,
@@ -323,7 +323,7 @@
     },
     "x_min_optimal2": {
       "intervals": 299,
-      "sha256": "58867fe7c5c55078e6dc1dd37f4dd845eaeb4e42b12ad1131e6b79f337289076"
+      "sha256": "8d83e64142a854d31e6d76078a7a51b677f703ff8a15d271517f2138a030b98f"
     }
   },
   "synthetic_unary_pwc": {
@@ -428,11 +428,11 @@
     },
     "x_max_window_2.5": {
       "intervals": 299,
-      "sha256": "e2d5d91214af49d7cebd6de0c19713901b828fbd05491c24c9fdf06a9933a24d"
+      "sha256": "f28a86d22a44421ac08eb5446f9c8929fb48618f992c4f56e414be11f65f1b04"
     },
     "x_max_window_9": {
       "intervals": 299,
-      "sha256": "5d632b01b80a5059161eb554d6c58a966a30574c51cf701ea0255c93d1ae760b"
+      "sha256": "f28a86d22a44421ac08eb5446f9c8929fb48618f992c4f56e414be11f65f1b04"
     },
     "x_min_window_2.5": {
       "intervals": 299,
@@ -491,11 +491,11 @@
     },
     "x_max_window_2.5": {
       "intervals": 299,
-      "sha256": "99bf6a913ce2dc60fbbaf653b85e0899b373a027f7429f2b6f2990efb5b2b45a"
+      "sha256": "e8b5e230de8e94aac5a98c30650560469587538817a80a00618f8b80e086bd30"
     },
     "x_max_window_9": {
       "intervals": 299,
-      "sha256": "1592aa1becbc2a2916da9dddec240a196a7747023f88cd5248e6346e84971b6f"
+      "sha256": "e8b5e230de8e94aac5a98c30650560469587538817a80a00618f8b80e086bd30"
     },
     "x_min_window_2.5": {
       "intervals": 299,
