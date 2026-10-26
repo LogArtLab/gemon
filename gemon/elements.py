@@ -214,9 +214,19 @@ class Interval:
             min_interval.append(Interval(extended_zeros[i], extended_zeros[i + 1], function))
         return min_interval
 
+    def _threshold_zeros(self, threshold: float):
+        """Zeros of f - threshold in [start, end]: the same computation as
+        self.zeros(Interval(start, end, Polynomial.constant(threshold))), without
+        building the constant interval and polynomial."""
+        f = self.function
+        if type(f) is Polynomial:
+            difference = Polynomial(f.a - 0, f.b - 0, f.c - threshold)
+        else:
+            difference = f - Polynomial.constant(threshold)
+        return [zero for zero in difference.zeros() if self.start <= zero <= self.end]
+
     def higher_than(self, threshold: float):  # TODO: unify with min interval
-        interval = Interval(self.start, self.end, Polynomial.constant(threshold))
-        zeros = self.zeros(interval)
+        zeros = self._threshold_zeros(threshold)
         if not zeros:  # decided at the midpoint, see min_interval
             return [Interval(self.start, self.end,
                              Polynomial.constant(int(self.function((self.start + self.end) / 2) > threshold))), ]
@@ -236,8 +246,7 @@ class Interval:
         return filtered_interval
 
     def lower_than(self, threshold: float):  # TODO: unify with min interval
-        interval = Interval(self.start, self.end, Polynomial.constant(threshold))
-        zeros = self.zeros(interval)
+        zeros = self._threshold_zeros(threshold)
         if not zeros:  # decided at the midpoint, see min_interval
             return [Interval(self.start, self.end,
                              Polynomial.constant(int(self.function((self.start + self.end) / 2) < threshold))), ]
