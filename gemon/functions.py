@@ -4,6 +4,7 @@ from typing import List
 
 
 class Polynomial:
+    __slots__ = ("a", "b", "c")
 
     def __init__(self, a, b, c):
         self.a = a
@@ -37,12 +38,19 @@ class Polynomial:
     def __call__(self, x):
         return self.a * x * x + self.b * x + self.c
 
+    # Polynomial operands are checked first: isinstance against the abstract
+    # numbers.Number is slow, and this is the hot path. Same results as before
+    # (an UndefinedFunction operand is a Polynomial with zero coefficients).
     def __sub__(self, other):
+        if isinstance(other, Polynomial):
+            return Polynomial(self.a - other.a, self.b - other.b, self.c - other.c)
         if isinstance(other, numbers.Number):
             return self - Polynomial.constant(other)
         return Polynomial(self.a - other.a, self.b - other.b, self.c - other.c)
 
     def __add__(self, other):
+        if isinstance(other, Polynomial):
+            return Polynomial(self.a + other.a, self.b + other.b, self.c + other.c)
         if isinstance(other, numbers.Number):
             return self + Polynomial.constant(other)
         return Polynomial(self.a + other.a, self.b + other.b, self.c + other.c)
@@ -84,6 +92,7 @@ class Polynomial:
 
 
 class UndefinedFunction(Polynomial):
+    __slots__ = ()
 
     def __init__(self):
         super().__init__(0, 0, 0)

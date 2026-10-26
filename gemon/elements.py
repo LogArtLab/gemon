@@ -52,6 +52,7 @@ class IntervalOperators:
 
 
 class Interval:
+    __slots__ = ("start", "end", "function")
 
     def __init__(self, start: float, end: float, function: Polynomial):
         self.start = start
@@ -85,12 +86,12 @@ class Interval:
         return f"[{self.start} - {self.end}] | {self.function}"
 
     def __add__(self, other: 'Interval') -> 'Interval':
-        if (self.start, self.end) != (other.start, other.end):
+        if self.start != other.start or self.end != other.end:
             raise Exception("Cannot sum interval with different bounds")
         return Interval(self.start, self.end, self.function + other.function)
 
     def __sub__(self, other: 'Interval') -> 'Interval':
-        if (self.start, self.end) != (other.start, other.end):
+        if self.start != other.start or self.end != other.end:
             raise Exception("Cannot subtract interval with different bounds")
         return Interval(self.start, self.end, self.function - other.function)
 
