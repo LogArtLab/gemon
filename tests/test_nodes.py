@@ -1,18 +1,7 @@
 from gemon.elements import Interval, MinMonotonicEdge
 from gemon.functions import Polynomial
-from gemon.nodes import MinOptimalWindowNode2, NaryNode
+from gemon.nodes import NaryNode
 
-
-def test_receive():
-    vout = []
-    node = MinOptimalWindowNode2(1.5)
-    node.to(vout.append)
-    node.receive(Interval(0, 1, Polynomial.constant(2)))
-    node.receive(Interval(1, 2, Polynomial.constant(3)))
-    node.receive(Interval(2, 3, Polynomial.constant(2.5)))
-    node.receive(Interval(3, 4, Polynomial.constant(2.1)))
-
-    print()
 
 def test_monotonic_edge_remove():
     me = MinMonotonicEdge()

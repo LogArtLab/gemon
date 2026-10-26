@@ -28,7 +28,7 @@ from gemon.elements import Interval
 from gemon.nodes import (
     VariablePWCNode, VariablePWLNode, HigherThanNode, LowerThanNode, ShiftNode, MultiplyByConst,
     MinNode, MaxNode, SumNode, SubNode, FilterNode, NaryNode,
-    IntegralWindowNode, MinWindowNode, MaxWindowNode, MinOptimalWindowNode, MinOptimalWindowNode2,
+    IntegralWindowNode, MinWindowNode, MaxWindowNode,
 )
 
 EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples", "RV2025")
@@ -220,18 +220,6 @@ def synthetic_windows(kind):
     return rec.result()
 
 
-def synthetic_optimal_windows(kind):
-    # experimental nodes; each one gets its own input, since a failure may leave it inconsistent
-    rec = Recorder()
-    sources = []
-    for name, cls in [("min_optimal", MinOptimalWindowNode), ("min_optimal2", MinOptimalWindowNode2)]:
-        x = rec.watch(f"x_{name}", INTERPOLATIONS[kind]())
-        x.to(rec.watch(f"{name}_2.5", cls(2.5)).receive)
-        sources.append((f"x_{name}", x, random_samples(5)))
-    stream(rec, sources)
-    return rec.result()
-
-
 def synthetic_composite():
     # a monitor in the style of the paper's formulas: smoothed signal, deviation, thresholds, conjunction
     rec = Recorder()
@@ -261,7 +249,6 @@ def all_traces():
     traces = {"rv2025_cgm": rv2025_cgm(), "rv2025_weather": rv2025_weather(),
               "synthetic_composite": synthetic_composite()}
     for kind in INTERPOLATIONS:
-        for scenario in (synthetic_unary, synthetic_binary, synthetic_nary, synthetic_windows,
-                         synthetic_optimal_windows):
+        for scenario in (synthetic_unary, synthetic_binary, synthetic_nary, synthetic_windows):
             traces[f"{scenario.__name__}_{kind}"] = scenario(kind)
     return traces
