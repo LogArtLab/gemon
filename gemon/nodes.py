@@ -1,5 +1,4 @@
-from gemon.elements import Interval, WindowOperator, Integral, Max, IntervalOperators, WindowInterval, \
-    Min2, WindowExtremum
+from gemon.elements import Interval, WindowOperator, Integral, IntervalOperators, WindowInterval, WindowExtremum
 from gemon.functions import Polynomial
 from gemon.notifiers import IntervalNotifier
 

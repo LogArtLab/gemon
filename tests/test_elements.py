@@ -2,8 +2,7 @@
 from unittest.mock import MagicMock, call
 import pytest
 
-from gemon.elements import Interval, Integral, Min, Max, Intervals, TimedValue, IntervalValued, \
-    WindowInterval
+from gemon.elements import Interval, Integral, WindowExtremum, WindowInterval
 from gemon.functions import Polynomial
 
 
@@ -294,8 +293,9 @@ def test_window_interval_short_window():
 
 
 # TEST MIN
+# Sliding-window min/max (WindowExtremum; these cases were written for the former Min and Max)
 def test_min_move_with_constants():
-    min_operator = Min()
+    min_operator = WindowExtremum(minimum=True)
     first_interval = Interval(1, 2, Polynomial.constant(4))
     second_interval = Interval(2, 3, Polynomial.constant(3))
     third_interval = Interval(3, 4, Polynomial.constant(2))
@@ -308,7 +308,7 @@ def test_min_move_with_constants():
 
 
 def test_min_move_with_functions():
-    min_operator = Min()
+    min_operator = WindowExtremum(minimum=True)
     first_interval = Interval(1, 2, Polynomial.linear(1, 1))
     second_interval = Interval(2, 3, Polynomial.constant(1.5))
     third_interval = Interval(3, 4, Polynomial.constant(1))
@@ -323,7 +323,7 @@ def test_min_move_with_functions():
 
 
 def test_min_move_with_functions_version():
-    min_operator = Min()
+    min_operator = WindowExtremum(minimum=True)
     first_interval = Interval(1, 2, Polynomial.linear(1, 1))
     second_interval = Interval(2, 3, Polynomial.constant(1.5))
     third_interval = Interval(3, 4, Polynomial.constant(1))
@@ -336,7 +336,7 @@ def test_min_move_with_functions_version():
 
 
 def test_min_move_with_functions_and_zeros():
-    min_operator = Min()
+    min_operator = WindowExtremum(minimum=True)
     first_interval = Interval(1, 2, Polynomial.linear(1, 1))
     second_interval = Interval(2, 3, Polynomial.constant(2.7))
     third_interval = Interval(3, 4, Polynomial.constant(3))
@@ -349,7 +349,7 @@ def test_min_move_with_functions_and_zeros():
 
 
 def test_min_move_with_window_1():
-    min_operator = Min()
+    min_operator = WindowExtremum(minimum=True)
     first_interval = Interval(0, 1, Polynomial.linear(-1, 1))
     second_interval = Interval(1, 2, Polynomial.constant(0))
     third_interval = Interval(2, 3, Polynomial.linear(1, -2))
@@ -363,7 +363,7 @@ def test_min_move_with_window_1():
 
 # TEST MAX
 def test_max_move_with_constants():
-    max_operator = Max()
+    max_operator = WindowExtremum(minimum=False)
     first_interval = Interval(1, 2, Polynomial.constant(2))
     second_interval = Interval(2, 3, Polynomial.constant(3))
     third_interval = Interval(3, 4, Polynomial.constant(4))
@@ -376,7 +376,7 @@ def test_max_move_with_constants():
 
 
 def test_max_move_with_functions():
-    max_operator = Max()
+    max_operator = WindowExtremum(minimum=False)
     first_interval = Interval(1, 2, Polynomial.linear(1, 1))
     second_interval = Interval(2, 3, Polynomial.constant(1.5))
     third_interval = Interval(3, 4, Polynomial.constant(3))
@@ -391,7 +391,7 @@ def test_max_move_with_functions():
 
 
 def test_max_move_with_functions_version():
-    max_operator = Max()
+    max_operator = WindowExtremum(minimum=False)
     first_interval = Interval(1, 2, Polynomial.linear(1, 1))
     second_interval = Interval(2, 3, Polynomial.constant(1.5))
     third_interval = Interval(3, 4, Polynomial.constant(3))
@@ -404,7 +404,7 @@ def test_max_move_with_functions_version():
 
 
 def test_max_move_with_functions_and_zeros():
-    max_operator = Max()
+    max_operator = WindowExtremum(minimum=False)
     first_interval = Interval(1, 2, Polynomial.linear(-1, 4))
     second_interval = Interval(2, 3, Polynomial.constant(2))
     third_interval = Interval(3, 4, Polynomial.constant(2.7))
@@ -417,7 +417,7 @@ def test_max_move_with_functions_and_zeros():
 
 
 def test_max_move_with_window_1():
-    max_operator = Max()
+    max_operator = WindowExtremum(minimum=False)
     first_interval = Interval(0, 1, Polynomial.linear(-1, 1))
     second_interval = Interval(1, 2, Polynomial.constant(0))
     third_interval = Interval(2, 3, Polynomial.linear(1, -2))
@@ -430,151 +430,3 @@ def test_max_move_with_window_1():
 
 
 # TEST INTERVALS
-
-def test_intervals_append():
-    intervals = Intervals()
-    interval = Interval(0, 1, Polynomial.undefined())
-
-    intervals.append(interval)
-
-    assert intervals.get_first() == interval
-
-
-def test_intervals_get_first():
-    intervals = Intervals()
-    interval = Interval(0, 1, Polynomial.undefined())
-
-    intervals.append(interval)
-    intervals.append(Interval(3, 10, Polynomial.constant(0)))
-
-    assert intervals.get_first() == interval
-
-
-def test_intervals_remove_first():
-    intervals = Intervals()
-    first_interval = Interval(0, 1, Polynomial.undefined())
-    second_interval = Interval(1, 10, Polynomial.constant(0))
-    intervals.append(first_interval)
-    intervals.append(second_interval)
-
-    removed = intervals.remove_first()
-
-    assert removed == first_interval
-    assert intervals.get_first() == second_interval
-
-
-def test_intervals_replace_first():
-    intervals = Intervals()
-    interval = Interval(0, 1, Polynomial.undefined())
-    replaced = Interval(0, 1, Polynomial.constant(20))
-    intervals.append(interval)
-
-    intervals.replace_first(replaced)
-
-    assert intervals.get_first() == replaced
-
-
-# TESTS INTERVAL VALUED
-
-def test_left_subset_when_it_is_true():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    third = TimedValue(3.0, 30)
-    interval_valued = IntervalValued(first, second)
-
-    left_subset = interval_valued.is_left_subset(IntervalValued(first, third))
-
-    assert left_subset is True
-
-
-def test_left_subset_when_it_is_false():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    third = TimedValue(1.50, 30)
-    interval_valued = IntervalValued(first, second)
-
-    left_subset = interval_valued.is_left_subset(IntervalValued(first, third))
-
-    assert left_subset is False
-
-
-def test_left_subset_with_same_interval():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    interval_valued = IntervalValued(first, second)
-
-    left_subset = interval_valued.is_left_subset(interval_valued)
-
-    assert left_subset is False
-
-
-def test_left_minus():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    third = TimedValue(1.5, 30)
-    interval = IntervalValued(first, second)
-    to_be_removed_interval = IntervalValued(first, third)
-
-    left_subset = interval.left_minus(to_be_removed_interval)
-
-    assert left_subset == IntervalValued(third, second)
-
-
-def test_get_value():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    interval = IntervalValued(first, second)
-
-    minimum = interval.get_value(min)
-
-    assert minimum == 20
-
-
-def test_is_prolong_of():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    third = TimedValue(3.0, 25)
-    interval = IntervalValued(first, second)
-    prolong = IntervalValued(second, third)
-
-    prolong_of = prolong.is_prolong_of(interval)
-
-    assert prolong_of is True
-
-
-def test_is_not_a_prolong_because_of_not_constant_value():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    third = TimedValue(3.0, 26)
-    interval = IntervalValued(first, second)
-    prolong = IntervalValued(second, third)
-
-    not_a_prolong_of = prolong.is_prolong_of(interval)
-
-    assert not_a_prolong_of is False
-
-
-def test_is_not_a_prolong_because_of_times():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    third = TimedValue(3.0, 25)
-    fourth = TimedValue(4.0, 25)
-    interval = IntervalValued(first, second)
-    prolong = IntervalValued(third, fourth)
-
-    not_a_prolong_of = prolong.is_prolong_of(interval)
-
-    assert not_a_prolong_of is False
-
-
-def test_join():
-    first = TimedValue(1.0, 20)
-    second = TimedValue(2.0, 25)
-    third = TimedValue(2.0, 25)
-    fourth = TimedValue(4.0, 25)
-    interval = IntervalValued(first, second)
-    prolong = IntervalValued(third, fourth)
-
-    joined_interval = interval.join_left_of(prolong)
-
-    assert joined_interval == IntervalValued(first, fourth)
