@@ -75,12 +75,22 @@ class BinaryNode(IntervalNotifier):
         # queue is then replaced by a new, shorter interval. It must not be modified
         # in place: the same Interval object is delivered to every node fed by the
         # same signal, and other nodes may still hold it in their queues.
+        # An interval lying entirely before the other input starts is emitted as
+        # undefined and dropped (shortening it would leave an empty or reversed one).
         if right.start < left.start:
-            self.notify(Interval(right.start, left.start, Polynomial.undefined()))
-            self.right[0] = Interval(left.start, right.end, right.function)
+            if right.end <= left.start:
+                self.right.popleft()
+                self.notify(Interval(right.start, right.end, Polynomial.undefined()))
+            else:
+                self.notify(Interval(right.start, left.start, Polynomial.undefined()))
+                self.right[0] = Interval(left.start, right.end, right.function)
         elif left.start < right.start:
-            self.notify(Interval(left.start, right.start, Polynomial.undefined()))
-            self.left[0] = Interval(right.start, left.end, left.function)
+            if left.end <= right.start:
+                self.left.popleft()
+                self.notify(Interval(left.start, left.end, Polynomial.undefined()))
+            else:
+                self.notify(Interval(left.start, right.start, Polynomial.undefined()))
+                self.left[0] = Interval(right.start, left.end, left.function)
         elif left.end < right.end:
             right_left, right_right = right.split_at(left.end)
             self.right[0] = right_right

@@ -178,3 +178,21 @@ def test_binary_node_does_not_modify_shared_intervals():
         nodes[name].receive(t, v)
     assert [(i.start, i.end, i.function.c) for i in out_b] == [(0, 2, 11.0), (2, 4, 11.0), (4, 6, 23.0)]
     assert out_a[0].is_undefined() and (out_a[0].start, out_a[0].end) == (0, 2)
+
+
+def test_binary_node_drops_intervals_ending_before_the_other_input_starts():
+    # An interval of the early input ending at or before the start of the other
+    # input was shortened to an empty or reversed interval, which then produced
+    # empty or reversed output pieces.
+    for late_start in (2, 3.5):
+        node = SubNode()
+        out = []
+        node.to(out.append)
+        for s, e, c in [(0, 1, 1.0), (1, 2, 2.0), (2, 5, 3.0)]:
+            node.receive_right(Interval(s, e, Polynomial.constant(c)))
+        node.receive_left(Interval(late_start, 5, Polynomial.constant(10.0)))
+        assert all(i.end > i.start for i in out)
+        assert all(p.end == q.start for p, q in zip(out, out[1:]))
+        assert out[0].start == 0 and out[-1].end == 5
+        assert all(i.is_undefined() for i in out if i.end <= late_start)
+        assert [i.function.c for i in out if i.start >= late_start] == [7.0]
