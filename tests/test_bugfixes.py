@@ -155,3 +155,26 @@ def test_comparisons_without_inner_crossing_are_decided_inside_the_interval():
     falling = Interval(s, e, f.mult_by_const(-1) + Polynomial.constant(2 * threshold))  # starts at the threshold, falls
     assert [i.function for i in falling.min_interval(level)] == [falling.function]
     assert [i.function.c for i in falling.higher_than(threshold)] == [0]
+
+
+def test_binary_node_does_not_modify_shared_intervals():
+    # When one input starts later, the node shortened the head of the other queue by
+    # modifying the Interval in place. The same object is delivered to every node fed
+    # by that signal: here b = x + z, still holding x's first interval in its queue,
+    # saw it shortened by a = y - x and reported b undefined on [0, 2].
+    from gemon.nodes import VariablePWCNode, SumNode
+    x, y, z = VariablePWCNode(), VariablePWCNode(), VariablePWCNode()
+    a, b = SubNode(), SumNode()
+    out_a, out_b = [], []
+    a.to(out_a.append)
+    b.to(out_b.append)
+    x.to(a.receive_right)
+    y.to(a.receive_left)
+    x.to(b.receive_left)
+    z.to(b.receive_right)
+    nodes = {"x": x, "y": y, "z": z}
+    for name, t, v in [("x", 0, 1.0), ("z", 0, 10.0), ("x", 2, 1.0), ("y", 2, 5.0), ("y", 4, 5.0),
+                       ("z", 4, 20.0), ("x", 4, 3.0), ("y", 6, 5.0), ("z", 6, 20.0), ("x", 6, 3.0)]:
+        nodes[name].receive(t, v)
+    assert [(i.start, i.end, i.function.c) for i in out_b] == [(0, 2, 11.0), (2, 4, 11.0), (4, 6, 23.0)]
+    assert out_a[0].is_undefined() and (out_a[0].start, out_a[0].end) == (0, 2)

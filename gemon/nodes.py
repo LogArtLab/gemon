@@ -71,12 +71,16 @@ class BinaryNode(IntervalNotifier):
     def __merge(self):
         right = self.right[0]
         left = self.left[0]
+        # A late start on one side gives an undefined piece; the head of the other
+        # queue is then replaced by a new, shorter interval. It must not be modified
+        # in place: the same Interval object is delivered to every node fed by the
+        # same signal, and other nodes may still hold it in their queues.
         if right.start < left.start:
             self.notify(Interval(right.start, left.start, Polynomial.undefined()))
-            right.start = left.start
+            self.right[0] = Interval(left.start, right.end, right.function)
         elif left.start < right.start:
             self.notify(Interval(left.start, right.start, Polynomial.undefined()))
-            left.start = right.start
+            self.left[0] = Interval(right.start, left.end, left.function)
         elif left.end < right.end:
             right_left, right_right = right.split_at(left.end)
             self.right[0] = right_right
