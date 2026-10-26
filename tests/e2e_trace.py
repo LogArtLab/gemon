@@ -24,7 +24,6 @@ import hashlib
 import os
 import random
 
-from gemon.elements import Interval
 from gemon.nodes import (
     VariablePWCNode, VariablePWLNode, HigherThanNode, LowerThanNode, ShiftNode, MultiplyByConst,
     MinNode, MaxNode, SumNode, SubNode, FilterNode, NaryNode,
