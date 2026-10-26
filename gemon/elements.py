@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import deque, namedtuple
 from typing import Tuple, List
 
 from gemon.functions import Polynomial, UndefinedFunction
@@ -437,42 +437,71 @@ def _pointwise_min(left: List[Interval], right: List[Interval]) -> List[Interval
 class WindowExtremum(WindowOperator):
     """Minimum (minimum=True) or maximum of the signal over the window [t, t + length].
 
-    The window content is kept as a list of pieces. When the window moves, the output
+    The window content is kept as a queue of pieces. When the window moves, the output
     on the time span of the removed piece is the minimum of three terms: the minimum
     of the removed piece from t to its end, the minimum of the content in between,
     and the minimum of the added piece from its start to t + length. The maximum is
     computed as the opposite of the minimum of the opposite signal. A window touching
     an undefined piece gives an undefined output.
+
+    The minimum of the content in between comes from a monotonic queue (Lemire's
+    sliding-window minimum): the minima of the pieces after the first one, increasing
+    from front to back, so that the front holds their minimum. The first piece is
+    kept out of it because it is the one that gets shortened as the window moves.
+    Each piece enters and leaves the queue once: amortised O(1) per move.
     """
 
     def __init__(self, minimum: bool = True):
         self.sign = 1 if minimum else -1
-        self.pieces = []
+        self.pieces = deque()   # window content
+        self.minima = deque()   # (piece, minimum) for pieces[1:], minima increasing
+        self.undefined = 0      # undefined pieces in the content
 
     def _signed(self, function: Polynomial) -> Polynomial:
         return function if self.sign == 1 else function.mult_by_const(-1)
 
+    def _append(self, piece: Interval):
+        if piece.is_undefined():
+            self.undefined += 1
+        elif self.pieces:
+            value = _min_on(self._signed(piece.function), piece.start, piece.end)
+            while self.minima and self.minima[-1][1] >= value:
+                self.minima.pop()
+            self.minima.append((piece, value))
+        self.pieces.append(piece)
+
+    def _pop_front(self):
+        if self.pieces.popleft().is_undefined():
+            self.undefined -= 1
+        if self.pieces and self.minima and self.minima[0][0] is self.pieces[0]:
+            self.minima.popleft()  # the new first piece leaves the monotonic queue
+
     def add(self, interval: Interval):
-        self.pieces.append(interval)
+        self._append(interval)
 
     def move(self, removed: Interval, added: Interval):
         start, end = removed.start, removed.end
         tolerance = 1e-9 * max(1.0, abs(end))
         while self.pieces and self.pieces[0].end <= end + tolerance:
-            self.pieces.pop(0)
+            self._pop_front()
         if self.pieces and self.pieces[0].start < end - tolerance:
-            self.pieces[0] = Interval(end, self.pieces[0].end, self.pieces[0].function)
-        middle = self.pieces
-        self.pieces = middle + [added]
-        if removed.is_undefined() or added.is_undefined() or any(p.is_undefined() for p in middle):
+            first = self.pieces[0]
+            self.pieces[0] = Interval(end, first.end, first.function)
+        # self.pieces is now the content between the removed and the added piece
+        if removed.is_undefined() or added.is_undefined() or self.undefined:
+            self._append(added)
             return [Interval(start, end, Polynomial.undefined())]
         outgoing = _suffix_min(self._signed(removed.function), start, end)
         incoming = _prefix_min(self._signed(added.move_above(removed).function), start, end)
         result = _pointwise_min(outgoing, incoming)
-        if middle:
-            m = min(_min_on(self._signed(p.function), p.start, p.end) for p in middle)
+        if self.pieces:
+            first = self.pieces[0]
+            m = _min_on(self._signed(first.function), first.start, first.end)
+            if self.minima:
+                m = min(m, self.minima[0][1])
             result = [piece for r in result
                       for piece in _min_pair(r, Interval(r.start, r.end, Polynomial.constant(m)))]
+        self._append(added)
         if self.sign == -1:
             result = [Interval(r.start, r.end, r.function.mult_by_const(-1)) for r in result]
         return result
