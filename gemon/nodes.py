@@ -72,13 +72,13 @@ class BinaryNode(IntervalNotifier):
             self.notify(Interval(left.start, right.start, Polynomial.undefined()))
             left.start = right.start
         elif left.end < right.end:
-            right_left, right_right = right.split(left.end - right.start)
+            right_left, right_right = right.split_at(left.end)
             self.right[0] = right_right
             self.left.pop(0)
             self.notify_multiple(self.operator(left, right_left))
             # self.notify(left.apply_binary_operator(self.operator, right_left))
         elif right.end < left.end:
-            left_left, left_right = left.split(right.end - left.start)
+            left_left, left_right = left.split_at(right.end)
             self.left[0] = left_right
             self.right.pop(0)
             self.notify_multiple(self.operator(left_left, right))
@@ -135,13 +135,13 @@ class NaryNode(IntervalNotifier):
             self.notify(Interval(min_starts, max_starts, Polynomial.undefined()))
             for l in self.locations.values():
                 if l[0].start < max_starts:
-                    l[0] = l[0].split(max_starts - l[0].start)[1]
+                    l[0] = l[0].split_at(max_starts)[1]
         min_end = min(l[0].end for l in self.locations.values())
         cut = []
         for l in self.locations.values():
             l_end = l[0].end
             if l_end > min_end:
-                l_left, l_right = l[0].split(min_end - l[0].start)
+                l_left, l_right = l[0].split_at(min_end)
                 cut.append(l_left)
                 l[0] = l_right
             else:

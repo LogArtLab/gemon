@@ -121,6 +121,19 @@ class Interval:
         split_time = self.start + time
         return Interval(self.start, split_time, self.function), Interval(split_time, self.end, self.function)
 
+    def split_at(self, time) -> Tuple['Interval', 'Interval']:
+        """Split at the absolute instant time.
+
+        split(time - start) cuts at start + (time - start), which may differ from time
+        in the last bit; then intervals that should share a bound do not, and binary
+        operators reject them. The cut here is exactly time; when the two agree, the
+        value of start + (time - start) is kept (it may be a float where time is an int).
+        """
+        cut = self.start + (time - self.start)
+        if cut != time:
+            cut = time
+        return Interval(self.start, cut, self.function), Interval(cut, self.end, self.function)
+
     def subset(self, start, end) -> 'Interval':
         return Interval(start, end, self.function)
 
