@@ -220,6 +220,39 @@ def synthetic_windows(kind):
     return rec.result()
 
 
+def synthetic_long_windows(kind):
+    # long windows over dense sampling: many pieces inside each window
+    rec = Recorder()
+    sources = []
+    for name, node in [("min_window_60", MinWindowNode(60)), ("max_window_60", MaxWindowNode(60)),
+                       ("min_window_250", MinWindowNode(250)), ("max_window_250", MaxWindowNode(250)),
+                       ("integral_250", IntegralWindowNode(250))]:
+        x = rec.watch(f"x_{name}", INTERPOLATIONS[kind]())
+        x.to(rec.watch(name, node).receive)
+        sources.append((f"x_{name}", x, random_samples(8, n=1500, step=(0.05, 0.6))))
+    stream(rec, sources)
+    return rec.result()
+
+
+def synthetic_windows_undefined(kind):
+    # windows over a filtered signal, undefined where the filter is off
+    rec = Recorder()
+    sources = []
+    for name, cls in [("min", MinWindowNode), ("max", MaxWindowNode), ("integral", IntegralWindowNode)]:
+        x = rec.watch(f"x_{name}", INTERPOLATIONS[kind]())
+        y = rec.watch(f"y_{name}", VariablePWCNode())
+        y_pos = rec.watch(f"y_pos_{name}", HigherThanNode(-1))
+        filtered = rec.watch(f"filtered_{name}", FilterNode())
+        window = rec.watch(f"{name}_window_3", cls(3))
+        y.to(y_pos.receive)
+        x.to(filtered.receive_left)
+        y_pos.to(filtered.receive_right)
+        filtered.to(window.receive)
+        sources += [(f"x_{name}", x, random_samples(12)), (f"y_{name}", y, random_samples(13, start=0.3))]
+    stream(rec, sources)
+    return rec.result()
+
+
 def synthetic_composite():
     # a monitor in the style of the paper's formulas: smoothed signal, deviation, thresholds, conjunction
     rec = Recorder()
@@ -249,6 +282,7 @@ def all_traces():
     traces = {"rv2025_cgm": rv2025_cgm(), "rv2025_weather": rv2025_weather(),
               "synthetic_composite": synthetic_composite()}
     for kind in INTERPOLATIONS:
-        for scenario in (synthetic_unary, synthetic_binary, synthetic_nary, synthetic_windows):
+        for scenario in (synthetic_unary, synthetic_binary, synthetic_nary, synthetic_windows,
+                         synthetic_long_windows, synthetic_windows_undefined):
             traces[f"{scenario.__name__}_{kind}"] = scenario(kind)
     return traces

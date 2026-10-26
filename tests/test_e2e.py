@@ -21,7 +21,8 @@ SCENARIOS = {"rv2025_cgm": e2e_trace.rv2025_cgm, "rv2025_weather": e2e_trace.rv2
              "synthetic_composite": e2e_trace.synthetic_composite}
 for _kind in e2e_trace.INTERPOLATIONS:
     for _scenario in (e2e_trace.synthetic_unary, e2e_trace.synthetic_binary, e2e_trace.synthetic_nary,
-                      e2e_trace.synthetic_windows):
+                      e2e_trace.synthetic_windows, e2e_trace.synthetic_long_windows,
+                      e2e_trace.synthetic_windows_undefined):
         SCENARIOS[f"{_scenario.__name__}_{_kind}"] = (lambda s=_scenario, k=_kind: s(k))
 
 
