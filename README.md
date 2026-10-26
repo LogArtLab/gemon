@@ -10,6 +10,7 @@ A Python framework for specifying temporal logic formulae in a modular way and e
 
 - [Overview](#overview)
 - [Features](#features)
+- [What's new in 1.1.0](#whats-new-in-110)
 - [Installation](#installation)
 - [Repository Structure](#repository-structure)
 - [Use Cases / Examples](#use-cases--examples)
@@ -40,6 +41,14 @@ This project provides a purely Python-based framework for:
 
 ---
 
+## What's new in 1.1.0
+
+Bug fixes in the binary and n-ary nodes, in the input nodes and in the window minimum/maximum (now exact, with
+Lemire's monotonic queue), faster arithmetic, removal of broken or unused operators, and end-to-end regression tests.
+See [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## Installation
 
 1. **Clone the repository**:
@@ -63,42 +72,47 @@ This project provides a purely Python-based framework for:
 ## Repository Structure
 
 ```
-gemon/
-│
-├── elements.py          # Definitions of atomic elements/predicates or base building blocks
-├── functions.py         # Utility functions or higher-order helpers for combining or manipulating elements/nodes
-├── nodes.py             # Definitions of temporal operators, AST nodes, and evaluation logic
-├── notifiers.py         # Classes or utilities for registering callbacks/actions on formula evaluation events
-├── requirements.txt     # Python dependencies
-│
-├── test_elements.py     # Unit tests for elements module
-├── test_nodes.py       # Unit tests for nodes (operators, evaluation engine, etc.)
-│
-└── usecase/             # Example use cases or demo scripts showing how to apply the framework
-    └── weather/         # Example related to weather monitoring
-    └── cgm/             # Example related to CGM monitoring
+.
+├── gemon/
+│   ├── elements.py      # intervals (symbolic states), interval operators, sliding windows
+│   ├── functions.py     # polynomials of degree <= 2 and the undefined function
+│   ├── nodes.py         # nodes of the monitoring graph: input, unary, binary, n-ary, window nodes
+│   └── notifiers.py     # observer pattern used by the nodes
+├── tests/
+│   ├── test_elements.py, test_nodes.py   # unit tests
+│   ├── test_bugfixes.py                  # regression tests of the fixed bugs
+│   └── test_e2e.py                       # end-to-end semantics against tests/golden/
+├── examples/RV2025/     # the case studies of the RV 2025 paper
+│   ├── weather/         # weather monitoring
+│   └── cgm/             # continuous glucose monitoring
+├── docs/                # extended version of the RV 2025 paper
+├── pyproject.toml
+└── requirements.txt
 ```
 ---
 ## Use Cases / Examples
 
-Under `usecase/`, example scripts demonstrate application of the framework. Please refer to `usecase/weather` or `usecase/cgm`.
+Under `examples/RV2025/`, example scripts demonstrate application of the framework. Please refer to `examples/RV2025/weather` or `examples/RV2025/cgm`.
 
 ### Weather Events
-![Alt Text](https://github.com/LogArtLab/gemon/blob/main/usecase/weather/fig/gif_weather.gif)
+![Weather events](examples/RV2025/weather/fig/gif_weather.gif)
 
 ### Artificial Pancreas
-![Alt Text](https://github.com/LogArtLab/gemon/blob/main/usecase/cgm/fig/gif_cgm.gif)
+![Artificial pancreas](examples/RV2025/cgm/fig/gif_cgm.gif)
 ---
 
 ## Testing
 
-Unit tests are provided for core modules:
-- **test_elements.py**: tests for atomic predicate behavior and utilities.
-- **test_nodes.py**: tests for temporal operators and evaluator correctness.
+- **tests/test_elements.py**, **tests/test_nodes.py**: unit tests of the core modules.
+- **tests/test_bugfixes.py**: regression tests of the bugs fixed in 1.1.0.
+- **tests/test_e2e.py**: end-to-end tests of the semantics. Every node of the RV 2025 case studies and of synthetic
+  scenarios (random, irregularly sampled signals through every kind of node) must produce exactly the signal stored
+  in `tests/golden/e2e.json`. Regenerate it (`python tests/make_golden.py`) only for an intended change of the
+  semantics.
 
 Run tests with:
 ```bash
-pytest
+python -m pytest tests
 ```
 Ensure your virtual environment is active and dependencies installed.
 
