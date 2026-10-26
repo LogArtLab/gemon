@@ -382,9 +382,9 @@
   },
   "synthetic_windows_pwc": {
     "_errors": {
-      "count": 575,
-      "first": "x_max_window_2.5@4.517584980291554: Exception: Cannot remove an interval that is not a left subset",
-      "sha256": "7329e4de1b94b64cfbd8844459f9944cbb4072e8179363dda34b9a419549e3c8"
+      "count": 0,
+      "first": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "integral_1.0": {
       "intervals": 612,
@@ -399,16 +399,16 @@
       "sha256": "0ecfedf8f768dd7760bc3d9d5d38230665b31cb37de4340c6bad0eb3f6f3da6d"
     },
     "max_window_2.5": {
-      "intervals": 5,
-      "sha256": "4dac177847d84db02f192a900d2f81e70f2c133a3f0d9b200d3221a4cc356f84"
+      "intervals": 593,
+      "sha256": "017cf335c2a534da7eb33cdc7b56074721dac51bc67da755ea6ca1df67e01cd3"
     },
     "max_window_9": {
-      "intervals": 18,
-      "sha256": "c1bf9ad132b0dbef2fd8800c6263abc48ccfbac13facb556a2fd27a77bdf1b1f"
+      "intervals": 579,
+      "sha256": "9da744a1d665f9ea7dd37de43bf0593d5af958620c810e268c68b18fcbe686fe"
     },
     "min_window_2.5": {
       "intervals": 593,
-      "sha256": "ce81dfc1c156ddd02f9f6a05404aea65955165f800c5a27f156c0ba4c4acdf58"
+      "sha256": "5e115232655e307e425cb6adaacdb49e4156d2f1be7e3cb1917ef56c3029a834"
     },
     "min_window_9": {
       "intervals": 579,
@@ -445,9 +445,9 @@
   },
   "synthetic_windows_pwl": {
     "_errors": {
-      "count": 573,
-      "first": "x_max_window_2.5@6.784902828010735: Exception: Cannot remove an interval that is not a left subset",
-      "sha256": "12da5f34d9201b97e58ff902ae60d63be927032cf6c419b75e48e37acabedfae"
+      "count": 0,
+      "first": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "integral_1.0": {
       "intervals": 612,
@@ -462,20 +462,20 @@
       "sha256": "3956f1f19da627fabb504e4c0e25ba653b80c4e1f25a50bb3fa476c7e2303707"
     },
     "max_window_2.5": {
-      "intervals": 10,
-      "sha256": "a7bd1e79391bb0859c4a18b0c2f71bccf6bf877bf4d160c9eec64ac91e551a1f"
+      "intervals": 728,
+      "sha256": "7892abe7c6e2a2fea04c4b1c165fcc63b2d56d22bb7f5a7ed804a03f26e72421"
     },
     "max_window_9": {
-      "intervals": 29,
-      "sha256": "77f25939079af4d962c59e58d88fa12a3bdff2ac7e8c0d2331200b2db921c812"
+      "intervals": 689,
+      "sha256": "bbcf17cb27261a594cc71bba5f988a350591079900e182b984f9ca8b0759ba32"
     },
     "min_window_2.5": {
-      "intervals": 746,
-      "sha256": "43047652bfe584d4284ddb15ae9cefd1adc90baf1d94e0d02745f81e23f62233"
+      "intervals": 727,
+      "sha256": "965d8080bce5c38d404471a4752363d0c8eab4dc95ea7ca2a4484e2928f4d413"
     },
     "min_window_9": {
-      "intervals": 658,
-      "sha256": "8cfe22b2b02d8360e4aa1df141d693ff24cfbe96b96bfaac2c1511437a65d985"
+      "intervals": 688,
+      "sha256": "64e6e97ff5f7a6035ee6d54341f93e58ae9b79c8a251c3094cfd4f4654574351"
     },
     "x_integral_1.0": {
       "intervals": 299,

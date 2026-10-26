@@ -807,3 +807,124 @@ class Max(WindowOperator):
             max_intervals.extend(interval.max_interval(added_shifted.project_onto(interval)))
         self.add(added)
         return max_intervals
+
+
+# ── Sliding-window minimum / maximum ──────────────────────────────────────────
+# Exact for piecewise polynomials of degree <= 2. The output at t is the minimum
+# (maximum) of the signal over the window [t, t + length], like Integral.
+
+def _vertex(f: Polynomial):
+    return -f.b / (2 * f.a)
+
+
+def _min_on(f: Polynomial, start, end):
+    """Minimum of f on [start, end]."""
+    values = [f(start), f(end)]
+    if f.a > 0 and start < _vertex(f) < end:
+        values.append(f(_vertex(f)))
+    return min(values)
+
+
+def _min_pair(left: Interval, right: Interval) -> List[Interval]:
+    """Pointwise minimum of two functions on the same interval. Cuts at the crossings
+    strictly inside and picks each piece by its midpoint (deciding at the left end
+    point is wrong when the functions touch there)."""
+    start, end = left.start, left.end
+    crossings = sorted(z for z in (left.function - right.function).zeros() if start < z < end)
+    points = [start] + crossings + [end]
+    result = []
+    for t0, t1 in zip(points, points[1:]):
+        mid = (t0 + t1) / 2
+        function = left.function if left.function(mid) <= right.function(mid) else right.function
+        result.append(Interval(t0, t1, function))
+    return result
+
+
+def _suffix_min(f: Polynomial, start, end) -> List[Interval]:
+    """h(t) = min of f on [t, end], for t in [start, end]."""
+    if f.a == 0:
+        if f.b >= 0:  # non-decreasing: the minimum is at t
+            return [Interval(start, end, f)]
+        return [Interval(start, end, Polynomial.constant(f(end)))]
+    if f.a < 0:  # concave: the minimum is at an end point
+        return _min_pair(Interval(start, end, f), Interval(start, end, Polynomial.constant(f(end))))
+    v = _vertex(f)  # convex
+    if v >= end:
+        return [Interval(start, end, Polynomial.constant(f(end)))]
+    if v <= start:
+        return [Interval(start, end, f)]
+    return [Interval(start, v, Polynomial.constant(f(v))), Interval(v, end, f)]
+
+
+def _prefix_min(f: Polynomial, start, end) -> List[Interval]:
+    """h(t) = min of f on [start, t], for t in [start, end]."""
+    if f.a == 0:
+        if f.b <= 0:  # non-increasing: the minimum is at t
+            return [Interval(start, end, f)]
+        return [Interval(start, end, Polynomial.constant(f(start)))]
+    if f.a < 0:
+        return _min_pair(Interval(start, end, f), Interval(start, end, Polynomial.constant(f(start))))
+    v = _vertex(f)
+    if v <= start:
+        return [Interval(start, end, Polynomial.constant(f(start)))]
+    if v >= end:
+        return [Interval(start, end, f)]
+    return [Interval(start, v, f), Interval(v, end, Polynomial.constant(f(v)))]
+
+
+def _pointwise_min(left: List[Interval], right: List[Interval]) -> List[Interval]:
+    """Pointwise minimum of two piecewise functions on the same domain."""
+    cuts = sorted({i.start for i in left} | {i.end for i in left} | {i.start for i in right} | {i.end for i in right})
+    result = []
+    li = ri = 0
+    for t0, t1 in zip(cuts, cuts[1:]):
+        while left[li].end <= t0:
+            li += 1
+        while right[ri].end <= t0:
+            ri += 1
+        result.extend(_min_pair(Interval(t0, t1, left[li].function), Interval(t0, t1, right[ri].function)))
+    return result
+
+
+class WindowExtremum(WindowOperator):
+    """Minimum (minimum=True) or maximum of the signal over the window [t, t + length].
+
+    The window content is kept as a list of pieces. When the window moves, the output
+    on the time span of the removed piece is the minimum of three terms: the minimum
+    of the removed piece from t to its end, the minimum of the content in between,
+    and the minimum of the added piece from its start to t + length. The maximum is
+    computed as the opposite of the minimum of the opposite signal. A window touching
+    an undefined piece gives an undefined output.
+    """
+
+    def __init__(self, minimum: bool = True):
+        self.sign = 1 if minimum else -1
+        self.pieces = []
+
+    def _signed(self, function: Polynomial) -> Polynomial:
+        return function if self.sign == 1 else function.mult_by_const(-1)
+
+    def add(self, interval: Interval):
+        self.pieces.append(interval)
+
+    def move(self, removed: Interval, added: Interval):
+        start, end = removed.start, removed.end
+        tolerance = 1e-9 * max(1.0, abs(end))
+        while self.pieces and self.pieces[0].end <= end + tolerance:
+            self.pieces.pop(0)
+        if self.pieces and self.pieces[0].start < end - tolerance:
+            self.pieces[0] = Interval(end, self.pieces[0].end, self.pieces[0].function)
+        middle = self.pieces
+        self.pieces = middle + [added]
+        if removed.is_undefined() or added.is_undefined() or any(p.is_undefined() for p in middle):
+            return [Interval(start, end, Polynomial.undefined())]
+        outgoing = _suffix_min(self._signed(removed.function), start, end)
+        incoming = _prefix_min(self._signed(added.move_above(removed).function), start, end)
+        result = _pointwise_min(outgoing, incoming)
+        if middle:
+            m = min(_min_on(self._signed(p.function), p.start, p.end) for p in middle)
+            result = [piece for r in result
+                      for piece in _min_pair(r, Interval(r.start, r.end, Polynomial.constant(m)))]
+        if self.sign == -1:
+            result = [Interval(r.start, r.end, r.function.mult_by_const(-1)) for r in result]
+        return result

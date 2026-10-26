@@ -1,5 +1,5 @@
 from gemon.elements import Interval, WindowOperator, Integral, Max, IntervalOperators, WindowInterval, \
-    Min2
+    Min2, WindowExtremum
 from gemon.functions import Polynomial
 from gemon.notifiers import IntervalNotifier
 
@@ -281,12 +281,12 @@ class IntegralWindowNode(WindowNode):
 
 class MinWindowNode(WindowNode):
     def __init__(self, length: float):
-        super().__init__(WindowInterval(length), Min2())
+        super().__init__(WindowInterval(length), WindowExtremum(minimum=True))
 
 
 class MaxWindowNode(WindowNode):
     def __init__(self, length: float):
-        super().__init__(WindowInterval(length), Max())
+        super().__init__(WindowInterval(length), WindowExtremum(minimum=False))
 
 
 class MinNode(BinaryNode):

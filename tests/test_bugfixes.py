@@ -71,3 +71,67 @@ def test_input_nodes_keep_their_sample_when_downstream_raises():
                 pass
         node.receive(3, 4.0)
         assert [(i.start, i.end) for i in out] == [(0, 1), (1, 2), (2, 3)]
+
+
+def _window_inputs(kind, seed, n=120):
+    """Intervals of a random signal: piecewise constant, linear, or quadratic (integral of a linear one)."""
+    from e2e_trace import random_samples
+    from gemon.nodes import VariablePWCNode, VariablePWLNode, IntegralWindowNode
+    source = VariablePWCNode() if kind == "pwc" else VariablePWLNode()
+    intervals = []
+    if kind == "quadratic":
+        integral = IntegralWindowNode(1.7)
+        source.to(integral.receive)
+        integral.to(intervals.append)
+    else:
+        source.to(intervals.append)
+    for t, v in random_samples(seed, n=n):
+        source.receive(t, v)
+    return intervals
+
+
+def _true_extremum(intervals, a, b, pick):
+    values = []
+    for interval in intervals:
+        lo, hi = max(a, interval.start), min(b, interval.end)
+        if hi <= lo:
+            continue
+        f = interval.function
+        values += [f(lo), f(hi)]
+        if f.a != 0 and lo < -f.b / (2 * f.a) < hi:
+            values.append(f(-f.b / (2 * f.a)))
+    return pick(values)
+
+
+def test_window_min_and_max_are_exact():
+    # MaxWindowNode used to raise ("Cannot remove an interval that is not a left subset")
+    # and MinWindowNode gave wrong values on piecewise-linear signals.
+    from gemon.nodes import MinWindowNode, MaxWindowNode
+    for kind in ("pwc", "pwl", "quadratic"):
+        intervals = _window_inputs(kind, seed=4)
+        for length in (0.5, 2.5, 9.0):
+            for cls, pick in ((MinWindowNode, min), (MaxWindowNode, max)):
+                node = cls(length)
+                out = []
+                node.to(out.append)
+                for interval in intervals:
+                    node.receive(interval)
+                assert out and all(p.end == q.start for p, q in zip(out, out[1:]))
+                for piece in out:
+                    if piece.end - piece.start < 1e-9:  # sliver from the window's float arithmetic
+                        continue
+                    for k in (1, 2, 3):
+                        t = piece.start + k * (piece.end - piece.start) / 4
+                        assert abs(piece.function(t) - _true_extremum(intervals, t, t + length, pick)) < 1e-6
+
+
+def test_window_min_is_undefined_where_the_window_meets_undefined_values():
+    from gemon.nodes import MinWindowNode
+    node = MinWindowNode(1.0)
+    out = []
+    node.to(out.append)
+    node.receive(Interval(0, 1, Polynomial.constant(3)))
+    node.receive(Interval(1, 2, Polynomial.undefined()))
+    node.receive(Interval(2, 5, Polynomial.constant(1)))
+    assert all(piece.is_undefined() for piece in out if piece.start < 2)
+    assert [piece.function.c for piece in out if piece.start >= 2] == [1] * len([p for p in out if p.start >= 2])
