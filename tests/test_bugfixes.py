@@ -135,3 +135,23 @@ def test_window_min_is_undefined_where_the_window_meets_undefined_values():
     node.receive(Interval(2, 5, Polynomial.constant(1)))
     assert all(piece.is_undefined() for piece in out if piece.start < 2)
     assert [piece.function.c for piece in out if piece.start >= 2] == [1] * len([p for p in out if p.start >= 2])
+
+
+def test_comparisons_without_inner_crossing_are_decided_inside_the_interval():
+    # A signal starting exactly at the threshold and rising: the root of f - threshold
+    # falls just outside the interval because of rounding, and the old code decided
+    # the whole interval by comparing the values at the left end point, where they
+    # are equal: higher_than gave 0 and min_interval picked the threshold.
+    s, e = 15.482683736469738, 20.340652830337653
+    f = Polynomial.linear(2.7252650356287864, -38.05282518329322)
+    threshold = 4.1415914614062075
+    assert f(s) == threshold
+    rising = Interval(s, e, f)
+    level = Interval(s, e, Polynomial.constant(threshold))
+    assert [i.function.c for i in rising.higher_than(threshold)] == [1]
+    assert [i.function.c for i in rising.lower_than(threshold)] == [0]
+    assert [i.function for i in rising.min_interval(level)] == [level.function]
+    assert [i.function for i in rising.max_interval(level)] == [f]
+    falling = Interval(s, e, f.mult_by_const(-1) + Polynomial.constant(2 * threshold))  # starts at the threshold, falls
+    assert [i.function for i in falling.min_interval(level)] == [falling.function]
+    assert [i.function.c for i in falling.higher_than(threshold)] == [0]

@@ -216,7 +216,10 @@ class Interval:
         other_left_value, other_right_value = other.get_extreme_value()
         zeros = self.zeros(other)
         if not zeros:
-            if self_left_value < other_left_value:
+            # no crossing: the order is the same on the whole interval; decide at the
+            # midpoint (at the left end point the two functions may touch)
+            mid_point = (self.start + self.end) / 2
+            if self.function(mid_point) < other.function(mid_point):
                 return [self, ]
             else:
                 return [other, ]
@@ -244,7 +247,8 @@ class Interval:
         other_left_value, other_right_value = other.get_extreme_value()
         zeros = self.zeros(other)
         if not zeros:
-            if self_left_value < other_left_value:
+            mid_point = (self.start + self.end) / 2  # see min_interval
+            if self.function(mid_point) < other.function(mid_point):
                 return [other, ]
             else:
                 return [self, ]
@@ -268,9 +272,9 @@ class Interval:
     def higher_than(self, threshold: float):  # TODO: unify with min interval
         interval = Interval(self.start, self.end, Polynomial.constant(threshold))
         zeros = self.zeros(interval)
-        if not zeros:
+        if not zeros:  # decided at the midpoint, see min_interval
             return [Interval(self.start, self.end,
-                             Polynomial.constant(int(self.function(self.start) > threshold))), ]
+                             Polynomial.constant(int(self.function((self.start + self.end) / 2) > threshold))), ]
         extended_zeros = []
         if self.start not in zeros:
             extended_zeros += [self.start, ] + zeros
@@ -289,9 +293,9 @@ class Interval:
     def lower_than(self, threshold: float):  # TODO: unify with min interval
         interval = Interval(self.start, self.end, Polynomial.constant(threshold))
         zeros = self.zeros(interval)
-        if not zeros:
+        if not zeros:  # decided at the midpoint, see min_interval
             return [Interval(self.start, self.end,
-                             Polynomial.constant(int(self.function(self.start) < threshold))), ]
+                             Polynomial.constant(int(self.function((self.start + self.end) / 2) < threshold))), ]
         extended_zeros = []
         if self.start not in zeros:
             extended_zeros += [self.start, ] + zeros
