@@ -13,8 +13,16 @@ the time aggregators (regression tests in `tests/test_bugfixes.py`):
   no defined value (it was undefined as soon as the window touched one). The integral window already ignored them.
   Only `min_window_3`/`max_window_3` of the `synthetic_windows_undefined_*` scenarios change in `tests/golden/e2e.json`.
 
-New operators: `Interval.abs`, `IntervalOperators.abs`, `IntervalOperators.negation`; nodes `AbsNode`, `NotNode`
-(1 - x), `AndNode` (minimum), `OrNode` (maximum).
+New operators: `Interval.abs`, `IntervalOperators.abs`, `IntervalOperators.negation`, `IntervalOperators.add_const`;
+nodes `AbsNode`, `NotNode` (1 - x), `AndNode` (minimum), `OrNode` (maximum), `AddConstNode`. `HigherThanNode`,
+`LowerThanNode` (`threshold`), `MultiplyByConst`, `AddConstNode` (`value`) and `ShiftNode` (`delta`) keep their
+parameter as an attribute.
+
+Specification language (`gemon.lang`, new dependency: `lark`): monitors written as text (grammar
+`gemon/lang/gemon.lark`), compiled into a graph of gemon nodes with shared sub-formulas; type and degree checks with
+source positions; `printer.unparse` (text from a syntax tree); `graph.describe` (canonical description of a graph of
+nodes). Tests: `tests/test_lang_parser.py`, `tests/test_lang_compiler.py` (hand-built vs compiled monitors: same graph
+and same intervals; RV 2025 case studies against `tests/golden/e2e.json`; random formulas).
 
 ## 1.1.0
 

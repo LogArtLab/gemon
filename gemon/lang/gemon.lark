@@ -1,0 +1,66 @@
+// Grammar of the gemon specification language (temporal fragment of LIM, the FRL of
+// the RV 2025 paper without the until operators). LALR(1); see gemon/lang/parser.py.
+//
+// A program declares its input signals and constant parameters, then defines named
+// formulas. Every definition can be observed; equal sub-formulas share one node.
+//
+//     input G : linear
+//     param T = 180
+//     TAR := On[0, T] Int(G > 180) / T
+
+start: _item*
+
+_item: timeunit | input | param | definition
+
+timeunit: "timeunit" UNIT
+input: "input" NAME ":" INTERP
+param: "param" NAME "=" expr
+definition: NAME ":=" expr
+
+INTERP: "const" | "linear"
+
+// Precedence, lowest first: or, and, not, comparison, + -, * /, unary minus, atom.
+?expr: or_
+
+?or_: and_
+    | or_ "or" and_                        -> or_
+?and_: not_
+    | and_ "and" not_                      -> and_
+?not_: comparison
+    | "not" not_                           -> not_
+?comparison: sum
+    | sum CMP sum                          -> compare
+?sum: product
+    | sum "+" product                      -> add
+    | sum "-" product                      -> sub
+?product: unary
+    | product "*" unary                    -> mul
+    | product "/" unary                    -> div
+?unary: atom
+    | "-" unary                            -> neg
+
+?atom: NUMBER                              -> number
+    | QUANTITY                             -> quantity
+    | "true"                               -> true
+    | "false"                              -> false
+    | NAME                                 -> ref
+    | "|" expr "|"                         -> abs
+    | "abs" "(" expr ")"                   -> abs
+    | "min" "(" expr "," expr ")"          -> pmin
+    | "max" "(" expr "," expr ")"          -> pmax
+    | "On" "[" expr "," expr "]" TAG "(" expr ["|" expr] ")"   -> window
+    | "(" expr ")"
+
+TAG: "Int" | "Min" | "Max"
+CMP: "<=" | ">=" | "<" | ">"
+UNIT: "ms" | "s" | "min" | "h" | "d"
+// a number with its time unit, written without a space: 300s, 5min, 1.5h
+QUANTITY: /(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?(ms|min|s|h|d)(?![A-Za-z_0-9])/
+
+NAME: /[A-Za-z_][A-Za-z_0-9]*/
+NUMBER: /(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?/
+
+COMMENT: /#[^\n]*/
+%ignore COMMENT
+%import common.WS
+%ignore WS

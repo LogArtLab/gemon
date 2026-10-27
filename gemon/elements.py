@@ -42,6 +42,10 @@ class IntervalOperators:
         return lambda left, right: left.min_interval(right)
 
     @staticmethod
+    def add_const(value):
+        return lambda interval: [Interval(interval.start, interval.end, interval.function + Polynomial.constant(value)), ]
+
+    @staticmethod
     def mult_const(value):
         return lambda interval: [Interval(interval.start, interval.end, interval.function.mult_by_const(value)), ]
 

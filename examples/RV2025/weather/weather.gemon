@@ -1,0 +1,8 @@
+# Weather monitoring (RV 2025): the formulas of weather.py as a program.
+
+input co2  : linear
+input temp : linear
+
+mean_co2  := On[0, 5] Int(co2) / 5
+mean_temp := On[0, 5] Int(temp) / 5
+spec      := mean_co2 > 422 and mean_temp > 0

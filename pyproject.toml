@@ -14,6 +14,7 @@ authors = [{ name = "Simone Silvetti", email = "simone.silvetti@gmail.com" },
     { name = "Michele Loreti", email = "michele.loreti@unicam.it" }]
 
 dependencies = [
+    "lark>=1.2,<2",
     "numpy",
     "matplotlib",
     "pandas",
@@ -45,9 +46,11 @@ dev = [
 where = ["."]
 include = ["gemon*"]
 
-# Optional: include package data inside mypkg/ if you have any data files there
 [tool.setuptools]
 include-package-data = false
+
+[tool.setuptools.package-data]
+gemon = ["lang/*.lark"]
 
 [project.urls]
 Homepage = "https://github.com/LogArtLab/gemon"

@@ -1,0 +1,11 @@
+# Continuous glucose monitoring (RV 2025): the formulas of cgm.py as a program.
+# Time in seconds; G in mg/dL.
+
+input G : linear
+param T = 180
+
+TAR     := On[0, T] Int(G > 180) / T       # fraction of the window above range
+TBR     := On[0, T] Int(G < 70) / T        # fraction of the window below range
+mean    := On[0, T] Int(G) / T             # mean glucose
+mean_AR := On[0, T] Int(G | G > 180) / T   # integral of G where above range, over T
+mean_BR := On[0, T] Int(G | G < 70) / T

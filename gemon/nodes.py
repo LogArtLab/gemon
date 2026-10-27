@@ -324,21 +324,31 @@ class SubNode(BinaryNode):
 class HigherThanNode(UnaryNode):
     def __init__(self, threshold):
         super().__init__(IntervalOperators.higher_than(threshold))
+        self.threshold = threshold
 
 
 class LowerThanNode(UnaryNode):
     def __init__(self, threshold):
         super().__init__(IntervalOperators.lower_than(threshold))
+        self.threshold = threshold
 
 
 class ShiftNode(UnaryNode):
     def __init__(self, delta):
         super().__init__(IntervalOperators.shift(delta))
+        self.delta = delta
 
 
 class MultiplyByConst(UnaryNode):
     def __init__(self, value):
         super().__init__(IntervalOperators.mult_const(value))
+        self.value = value
+
+
+class AddConstNode(UnaryNode):
+    def __init__(self, value):
+        super().__init__(IntervalOperators.add_const(value))
+        self.value = value
 
 
 class AbsNode(UnaryNode):
