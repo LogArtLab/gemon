@@ -125,7 +125,10 @@ def test_window_min_and_max_are_exact():
                         assert abs(piece.function(t) - _true_extremum(intervals, t, t + length, pick)) < 1e-6
 
 
-def test_window_min_is_undefined_where_the_window_meets_undefined_values():
+def test_window_min_ignores_undefined_values():
+    # Undefined is ignored by every time aggregator: the window used to give undefined
+    # as soon as it touched an undefined piece. Window [t, t + 1]: on [0, 1] it sees
+    # 3 then (from t = 1 on) only undefined up to 2, where the value 1 starts.
     from gemon.nodes import MinWindowNode
     node = MinWindowNode(1.0)
     out = []
@@ -133,8 +136,125 @@ def test_window_min_is_undefined_where_the_window_meets_undefined_values():
     node.receive(Interval(0, 1, Polynomial.constant(3)))
     node.receive(Interval(1, 2, Polynomial.undefined()))
     node.receive(Interval(2, 5, Polynomial.constant(1)))
-    assert all(piece.is_undefined() for piece in out if piece.start < 2)
-    assert [piece.function.c for piece in out if piece.start >= 2] == [1] * len([p for p in out if p.start >= 2])
+    node.receive(Interval(5, 6, Polynomial.undefined()))
+    node.receive(Interval(6, 9, Polynomial.constant(2)))
+
+    def at(t):
+        return next(i.function(t) for i in out if i.start <= t < i.end)
+    assert at(0.5) == 3          # [0.5, 1.5]: 3 and undefined
+    assert at(1.0) == 1          # [1, 2]: undefined, then 1 at 2
+    assert at(1.5) == 1
+    assert at(4.5) == 1          # [4.5, 5.5]: 1 and undefined
+    assert at(5.0) == 2          # [5, 6]: undefined, then 2 at 6
+
+
+def test_window_min_is_undefined_where_the_window_holds_no_defined_value():
+    from gemon.nodes import MinWindowNode, MaxWindowNode
+    for cls in (MinWindowNode, MaxWindowNode):
+        node = cls(1.0)
+        out = []
+        node.to(out.append)
+        node.receive(Interval(0, 1, Polynomial.constant(3)))
+        node.receive(Interval(1, 4, Polynomial.undefined()))
+        node.receive(Interval(4, 6, Polynomial.constant(1)))
+        assert all(i.is_undefined() for i in out if 1 <= i.start and i.end <= 3)
+        assert any(i.is_undefined() for i in out)
+
+
+def test_window_extremum_matches_brute_force_with_undefined_pieces():
+    from gemon.nodes import MinWindowNode, MaxWindowNode
+    for seed in range(6):
+        rng = random.Random(seed)
+        t, pieces = 0.0, []
+        for _ in range(40):
+            d = rng.uniform(0.1, 1.5)
+            if rng.random() < 0.3:
+                f = Polynomial.undefined()
+            else:
+                f = Polynomial.linear(rng.uniform(-3, 3), rng.uniform(-5, 5))
+            pieces.append(Interval(t, t + d, f))
+            t += d
+        for cls, extremum in ((MinWindowNode, min), (MaxWindowNode, max)):
+            for length in (0.5, 2.0, 5.0):
+                node = cls(length)
+                out = []
+                node.to(out.append)
+                for piece in pieces:
+                    node.receive(piece)
+                for o in out:
+                    if o.end - o.start < 1e-9:
+                        continue
+                    x = (o.start + o.end) / 2
+                    values = []
+                    for p in pieces:  # pieces are [start, end), the window [x, x + length]
+                        if p.is_undefined() or p.end <= x or p.start > x + length:
+                            continue
+                        a, b = max(p.start, x), min(p.end, x + length)
+                        values += [p.function(a + (b - a) * k / 200) for k in range(201)]
+                    if not values:
+                        assert o.is_undefined()
+                    else:
+                        assert abs(o.function(x) - extremum(values)) < 1e-9
+
+
+def test_undefined_propagates_through_pointwise_operators():
+    # Strict propagation: an undefined operand gives an undefined result. The right
+    # operand used to be read as its zero coefficients (20 - undefined = 20).
+    from gemon.elements import IntervalOperators
+    u = Interval(0, 10, Polynomial.undefined())
+    x = Interval(0, 10, Polynomial.constant(20.0))
+    for left, right in ((x, u), (u, x)):
+        assert (left - right).is_undefined()
+        assert (left + right).is_undefined()
+        assert all(i.is_undefined() for i in left.min_interval(right))
+        assert all(i.is_undefined() for i in left.max_interval(right))
+    assert [i.is_undefined() for i in u.higher_than(5)] == [True]
+    assert [i.is_undefined() for i in u.lower_than(5)] == [True]
+    assert IntervalOperators.mult_const(2)(u)[0].is_undefined()
+    assert u.abs()[0].is_undefined()
+    assert IntervalOperators.negation()(u)[0].is_undefined()
+    assert Polynomial.constant(0) != Polynomial.undefined()
+
+
+def test_sub_node_propagates_undefined_right_operand():
+    node, out = SubNode(), []
+    node.to(out.append)
+    node.receive_left(Interval(0, 10, Polynomial.constant(20.0)))
+    node.receive_right(Interval(0, 10, Polynomial.undefined()))
+    assert out[0].is_undefined()
+
+
+def test_window_integral_ignores_undefined_values():
+    # Undefined adds nothing to the integral (ignored by the time aggregators).
+    from gemon.nodes import IntegralWindowNode
+    node, out = IntegralWindowNode(2.0), []
+    node.to(out.append)
+    node.receive(Interval(0, 1, Polynomial.constant(3)))
+    node.receive(Interval(1, 2, Polynomial.undefined()))
+    node.receive(Interval(2, 6, Polynomial.constant(1)))
+    assert next(i.function(0) for i in out if i.start <= 0 < i.end) == 3
+    assert next(i.function(1) for i in out if i.start <= 1 < i.end) == 1
+
+
+def test_abs_not_and_or():
+    from gemon.nodes import AbsNode, NotNode, AndNode, OrNode
+    node, out = AbsNode(), []
+    node.to(out.append)
+    node.receive(Interval(0, 4, Polynomial.linear(1, -1)))  # t - 1: negative on [0, 1)
+    assert [(i.start, i.end) for i in out] == [(0, 1), (1, 4)]
+    assert out[0].function(0.5) == 0.5 and out[1].function(3) == 2
+    node, out = NotNode(), []
+    node.to(out.append)
+    node.receive(Interval(0, 1, Polynomial.constant(1)))
+    node.receive(Interval(1, 2, Polynomial.constant(0)))
+    assert [i.function(0) for i in out] == [0, 1]
+    for cls, expected in ((AndNode, [0, 0, 1]), (OrNode, [1, 1, 1])):
+        node, out = cls(), []
+        node.to(out.append)
+        for s, e, a, b in ((0, 1, 1, 0), (1, 2, 0, 1), (2, 3, 1, 1)):
+            node.receive_left(Interval(s, e, Polynomial.constant(a)))
+            node.receive_right(Interval(s, e, Polynomial.constant(b)))
+        assert [i.function(0) for i in out] == expected
 
 
 def test_comparisons_without_inner_crossing_are_decided_inside_the_interval():

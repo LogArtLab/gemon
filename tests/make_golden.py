@@ -3,7 +3,9 @@
 Regenerate tests/golden/e2e.json, the reference end-to-end traces.
 
 Only run this when a change of the monitoring semantics is intended. The current
-golden file was generated from commit 7456d15 (branch main).
+golden file was generated from commit 7456d15 (branch main), then regenerated on
+branch iot when MinWindowNode/MaxWindowNode started ignoring undefined values: only
+min_window_3 and max_window_3 of synthetic_windows_undefined_* changed.
 
     python tests/make_golden.py
 """

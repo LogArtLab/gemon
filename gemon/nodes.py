@@ -341,6 +341,29 @@ class MultiplyByConst(UnaryNode):
         super().__init__(IntervalOperators.mult_const(value))
 
 
+class AbsNode(UnaryNode):
+    def __init__(self):
+        super().__init__(IntervalOperators.abs())
+
+
+class NotNode(UnaryNode):
+    """Negation of a 0/1 signal."""
+    def __init__(self):
+        super().__init__(IntervalOperators.negation())
+
+
+class AndNode(BinaryNode):
+    """Conjunction of 0/1 signals: the minimum."""
+    def __init__(self):
+        super().__init__(IntervalOperators.min())
+
+
+class OrNode(BinaryNode):
+    """Disjunction of 0/1 signals: the maximum."""
+    def __init__(self):
+        super().__init__(IntervalOperators.max())
+
+
 class FilterNode(BinaryNode):
     def __init__(self):
         super().__init__(IntervalOperators.filter())

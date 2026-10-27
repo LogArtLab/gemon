@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased (branch iot)
+
+Undefined values follow the semantics of the logic: strict propagation through the pointwise operators, ignored by
+the time aggregators (regression tests in `tests/test_bugfixes.py`):
+- `Polynomial.__add__`, `__sub__`: an undefined right operand gives an undefined result. It used to be read as its
+  zero coefficients (`20 - undefined = 20`). `Polynomial.__eq__` no longer equates the zero polynomial with undefined;
+  `mult_by_const` of undefined is undefined (it was the zero polynomial).
+- `Interval.min_interval`, `max_interval`: undefined if either input is; `higher_than`, `lower_than`: undefined on an
+  undefined input (they raised).
+- `MinWindowNode`, `MaxWindowNode`: undefined values are ignored; the output is undefined only where the window holds
+  no defined value (it was undefined as soon as the window touched one). The integral window already ignored them.
+  Only `min_window_3`/`max_window_3` of the `synthetic_windows_undefined_*` scenarios change in `tests/golden/e2e.json`.
+
+New operators: `Interval.abs`, `IntervalOperators.abs`, `IntervalOperators.negation`; nodes `AbsNode`, `NotNode`
+(1 - x), `AndNode` (minimum), `OrNode` (maximum).
+
 ## 1.1.0
 
 Bug fixes (each with a regression test in `tests/test_bugfixes.py`):

@@ -39,23 +39,30 @@ class Polynomial:
         return self.a * x * x + self.b * x + self.c
 
     # Polynomial operands are checked first: isinstance against the abstract
-    # numbers.Number is slow, and this is the hot path. Same results as before
-    # (an UndefinedFunction operand is a Polynomial with zero coefficients).
+    # numbers.Number is slow, and this is the hot path. An undefined operand gives an
+    # undefined result (strict propagation): it must not be read as its zero
+    # coefficients.
     def __sub__(self, other):
-        if isinstance(other, Polynomial):
+        if type(other) is Polynomial:
             return Polynomial(self.a - other.a, self.b - other.b, self.c - other.c)
+        if isinstance(other, UndefinedFunction):
+            return UndefinedFunction()
         if isinstance(other, numbers.Number):
             return self - Polynomial.constant(other)
         return Polynomial(self.a - other.a, self.b - other.b, self.c - other.c)
 
     def __add__(self, other):
-        if isinstance(other, Polynomial):
+        if type(other) is Polynomial:
             return Polynomial(self.a + other.a, self.b + other.b, self.c + other.c)
+        if isinstance(other, UndefinedFunction):
+            return UndefinedFunction()
         if isinstance(other, numbers.Number):
             return self + Polynomial.constant(other)
         return Polynomial(self.a + other.a, self.b + other.b, self.c + other.c)
 
     def __eq__(self, other: 'Polynomial'):
+        if isinstance(other, UndefinedFunction):
+            return False
         return (self.a, self.b, self.c) == (other.a, other.b, other.c)
 
     def __repr__(self):
@@ -112,10 +119,15 @@ class UndefinedFunction(Polynomial):
     def __repr__(self):
         return "[ UND ]"
 
+    # Undefined is ignored by the time aggregators: an undefined piece adds nothing
+    # to the window integral.
     def integral(self) -> 'Polynomial':
         return Polynomial.constant(0)
 
     def add_to_x(self, delta) -> 'Polynomial':
+        return UndefinedFunction()
+
+    def mult_by_const(self, value):
         return UndefinedFunction()
 
     def zeros(self) -> List:

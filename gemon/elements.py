@@ -46,6 +46,17 @@ class IntervalOperators:
         return lambda interval: [Interval(interval.start, interval.end, interval.function.mult_by_const(value)), ]
 
     @staticmethod
+    def abs():
+        return lambda interval: interval.abs()
+
+    @staticmethod
+    def negation():
+        """Boolean negation of a 0/1 signal: 1 - x."""
+        return lambda interval: [interval if interval.is_undefined()
+                                 else Interval(interval.start, interval.end,
+                                               Polynomial.constant(1) - interval.function), ]
+
+    @staticmethod
     def filter():
         return lambda left, right: [left if right.function == Polynomial.constant(1) else Interval(left.start, left.end,
                                                                                                    Polynomial.undefined()), ]
@@ -157,6 +168,8 @@ class Interval:
     def min_interval(self, other):
         if (self.start, self.end) != (other.start, other.end):
             raise Exception("Cannot compute the minimum interval of intervals with different bounds")
+        if self.is_undefined() or other.is_undefined():
+            return [Interval(self.start, self.end, Polynomial.undefined()), ]
         self_left_value, self_right_value = self.get_extreme_value()
         other_left_value, other_right_value = other.get_extreme_value()
         zeros = self.zeros(other)
@@ -188,6 +201,8 @@ class Interval:
     def max_interval(self, other):  # TODO: unify with min interval
         if (self.start, self.end) != (other.start, other.end):
             raise Exception("Cannot compute the maximum interval of intervals with different bounds")
+        if self.is_undefined() or other.is_undefined():
+            return [Interval(self.start, self.end, Polynomial.undefined()), ]
         self_left_value, self_right_value = self.get_extreme_value()
         other_left_value, other_right_value = other.get_extreme_value()
         zeros = self.zeros(other)
@@ -214,6 +229,17 @@ class Interval:
             min_interval.append(Interval(extended_zeros[i], extended_zeros[i + 1], function))
         return min_interval
 
+    def abs(self) -> List['Interval']:
+        """|f|: the interval is cut at the zeros of f inside it, and each piece where f
+        is negative (decided at its midpoint) gets -f."""
+        if self.is_undefined():
+            return [self, ]
+        f = self.function
+        zeros = sorted(z for z in f.zeros() if self.start < z < self.end)
+        points = [self.start] + zeros + [self.end]
+        neg = f.mult_by_const(-1)
+        return [Interval(t0, t1, neg if f((t0 + t1) / 2) < 0 else f) for t0, t1 in zip(points, points[1:])]
+
     def _threshold_zeros(self, threshold: float):
         """Zeros of f - threshold in [start, end]: the same computation as
         self.zeros(Interval(start, end, Polynomial.constant(threshold))), without
@@ -226,6 +252,8 @@ class Interval:
         return [zero for zero in difference.zeros() if self.start <= zero <= self.end]
 
     def higher_than(self, threshold: float):  # TODO: unify with min interval
+        if self.is_undefined():  # strict propagation
+            return [self, ]
         zeros = self._threshold_zeros(threshold)
         if not zeros:  # decided at the midpoint, see min_interval
             return [Interval(self.start, self.end,
@@ -246,6 +274,8 @@ class Interval:
         return filtered_interval
 
     def lower_than(self, threshold: float):  # TODO: unify with min interval
+        if self.is_undefined():  # strict propagation
+            return [self, ]
         zeros = self._threshold_zeros(threshold)
         if not zeros:  # decided at the midpoint, see min_interval
             return [Interval(self.start, self.end,
@@ -451,8 +481,9 @@ class WindowExtremum(WindowOperator):
     on the time span of the removed piece is the minimum of three terms: the minimum
     of the removed piece from t to its end, the minimum of the content in between,
     and the minimum of the added piece from its start to t + length. The maximum is
-    computed as the opposite of the minimum of the opposite signal. A window touching
-    an undefined piece gives an undefined output.
+    computed as the opposite of the minimum of the opposite signal. Undefined pieces
+    are ignored, as by every time aggregator; the output is undefined only where the
+    window holds no defined value.
 
     The minimum of the content in between comes from a monotonic queue (Lemire's
     sliding-window minimum): the minima of the pieces after the first one, increasing
@@ -464,16 +495,13 @@ class WindowExtremum(WindowOperator):
     def __init__(self, minimum: bool = True):
         self.sign = 1 if minimum else -1
         self.pieces = deque()   # window content
-        self.minima = deque()   # (piece, minimum) for pieces[1:], minima increasing
-        self.undefined = 0      # undefined pieces in the content
+        self.minima = deque()   # (piece, minimum) for the defined pieces[1:], minima increasing
 
     def _signed(self, function: Polynomial) -> Polynomial:
         return function if self.sign == 1 else function.mult_by_const(-1)
 
     def _append(self, piece: Interval):
-        if piece.is_undefined():
-            self.undefined += 1
-        elif self.pieces:
+        if self.pieces and not piece.is_undefined():
             value = _min_on(self._signed(piece.function), piece.start, piece.end)
             while self.minima and self.minima[-1][1] >= value:
                 self.minima.pop()
@@ -481,8 +509,7 @@ class WindowExtremum(WindowOperator):
         self.pieces.append(piece)
 
     def _pop_front(self):
-        if self.pieces.popleft().is_undefined():
-            self.undefined -= 1
+        self.pieces.popleft()
         if self.pieces and self.minima and self.minima[0][0] is self.pieces[0]:
             self.minima.popleft()  # the new first piece leaves the monotonic queue
 
@@ -497,21 +524,27 @@ class WindowExtremum(WindowOperator):
         if self.pieces and self.pieces[0].start < end - tolerance:
             first = self.pieces[0]
             self.pieces[0] = Interval(end, first.end, first.function)
-        # self.pieces is now the content between the removed and the added piece
-        if removed.is_undefined() or added.is_undefined() or self.undefined:
-            self._append(added)
-            return [Interval(start, end, Polynomial.undefined())]
-        outgoing = _suffix_min(self._signed(removed.function), start, end)
-        incoming = _prefix_min(self._signed(added.move_above(removed).function), start, end)
-        result = _pointwise_min(outgoing, incoming)
-        if self.pieces:
+        # self.pieces is now the content between the removed and the added piece;
+        # each of the three terms is absent when its pieces are undefined
+        terms = []
+        if not removed.is_undefined():
+            terms.append(_suffix_min(self._signed(removed.function), start, end))
+        if not added.is_undefined():
+            terms.append(_prefix_min(self._signed(added.move_above(removed).function), start, end))
+        m = None
+        if self.pieces and not self.pieces[0].is_undefined():
             first = self.pieces[0]
             m = _min_on(self._signed(first.function), first.start, first.end)
-            if self.minima:
-                m = min(m, self.minima[0][1])
-            result = [piece for r in result
-                      for piece in _min_pair(r, Interval(r.start, r.end, Polynomial.constant(m)))]
+        if self.minima:
+            m = self.minima[0][1] if m is None else min(m, self.minima[0][1])
         self._append(added)
+        if m is not None:
+            terms.append([Interval(start, end, Polynomial.constant(m))])
+        if not terms:
+            return [Interval(start, end, Polynomial.undefined())]
+        result = terms[0]
+        for term in terms[1:]:
+            result = _pointwise_min(result, term)
         if self.sign == -1:
             result = [Interval(r.start, r.end, r.function.mult_by_const(-1)) for r in result]
         return result
