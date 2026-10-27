@@ -124,6 +124,19 @@ class ToSyntax(Transformer):
         return Window(str(tag), lower, upper, operand, condition, Position(meta.line, meta.column))
 
 
+def namespaced(transformer, prefix):
+    """A subclass of transformer that also handles the rules of this grammar as an
+    extension sees them: Lark prefixes the imported rules with the grammar name
+    (gemon__add, gemon__window, ...)."""
+    methods = {}
+    for cls in reversed(transformer.__mro__):
+        if issubclass(cls, ToSyntax):
+            for name, value in vars(cls).items():
+                if callable(value) and not name.startswith("_"):
+                    methods[prefix + name] = value
+    return type(transformer.__name__, (transformer,), methods)
+
+
 @lru_cache(maxsize=None)
 def _lark(path, start="start"):
     with open(path) as f:
@@ -149,7 +162,7 @@ def _syntax_error(error, text):
 def _timeunit(tree):
     """The timeunit declaration must be known before numbers are converted: it is read
     from the tree first (it may appear anywhere, at most once)."""
-    units = [t.children[0] for t in tree.children if getattr(t, "data", None) == "timeunit"]
+    units = [t.children[0] for t in tree.children if str(getattr(t, "data", "")).endswith("timeunit")]
     if len(units) > 1:
         raise LangError("timeunit declared more than once", Position(units[1].line, units[1].column))
     return str(units[0]) if units else "s"

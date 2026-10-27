@@ -61,29 +61,36 @@ class Lowering:
         return self
 
     def declare(self, item):
-        if isinstance(item, S.InputDecl):
-            self._new_name(item.name, item.position)
-            degree = 1 if item.interpolation == "linear" else 0
-            self.inputs[item.name] = Signal(S.Input(item.name, item.interpolation), False, degree)
-        elif isinstance(item, S.ParamDecl):
-            self._new_name(item.name, item.position)
-            value = self.lower(item.value)
-            if not _is_const(value):
-                raise LangError(f"parameter {item.name!r} must be a constant", item.position)
-            self.params[item.name] = value
-        elif isinstance(item, S.Definition):
-            self._new_name(item.name, item.position)
-            value = self.lower(item.expr)
-            if _is_const(value):
-                raise LangError(f"{item.name!r} is {_describe(value)}: a definition must be a signal",
-                                item.position)
-            self.definitions[item.name] = value
-        else:
-            raise LangError(f"unexpected item {item!r}")
+        method = getattr(self, "declare_" + type(item).__name__, None)
+        if method is None:
+            raise LangError(f"unexpected item {type(item).__name__}", getattr(item, "position", None))
+        method(item)
+
+    def declare_InputDecl(self, item):
+        self._new_name(item.name, item.position)
+        degree = 1 if item.interpolation == "linear" else 0
+        self.inputs[item.name] = Signal(S.Input(item.name, item.interpolation), False, degree)
+
+    def declare_ParamDecl(self, item):
+        self._new_name(item.name, item.position)
+        value = self.lower(item.value)
+        if not _is_const(value):
+            raise LangError(f"parameter {item.name!r} must be a constant", item.position)
+        self.params[item.name] = value
+
+    def declare_Definition(self, item):
+        self._new_name(item.name, item.position)
+        value = self.lower(item.expr)
+        if _is_const(value):
+            raise LangError(f"{item.name!r} is {_describe(value)}: a definition must be a signal", item.position)
+        self.definitions[item.name] = value
 
     def _new_name(self, name, position):
-        if name in self.inputs or name in self.params or name in self.definitions:
+        if self.is_defined(name):
             raise LangError(f"{name!r} is already defined", position)
+
+    def is_defined(self, name):
+        return name in self.inputs or name in self.params or name in self.definitions
 
     # expressions: constant (int/float/bool) or Signal
     def lower(self, e):
@@ -266,6 +273,36 @@ class Lowering:
         return Signal((S.And if op == "and" else S.Or)(a.core, b.core), True, 0)
 
 
+def _window_class(tag):
+    return {"Int": IntegralWindowNode, "Min": MinWindowNode, "Max": MaxWindowNode}[tag]
+
+
+# core class -> (function core -> a new gemon node, names of the operand fields in port order)
+NODES = {
+    S.Sum: (lambda c: SumNode(), ("left", "right")),
+    S.Sub: (lambda c: SubNode(), ("left", "right")),
+    S.AddConst: (lambda c: AddConstNode(c.value), ("operand",)),
+    S.Scale: (lambda c: MultiplyByConst(c.value), ("operand",)),
+    S.Threshold: (lambda c: HigherThanNode(c.value) if c.op == ">" else LowerThanNode(c.value), ("operand",)),
+    S.Not: (lambda c: NotNode(), ("operand",)),
+    S.And: (lambda c: AndNode(), ("left", "right")),
+    S.Or: (lambda c: OrNode(), ("left", "right")),
+    S.Abs: (lambda c: AbsNode(), ("operand",)),
+    S.PointMin: (lambda c: MinNode(), ("left", "right")),
+    S.PointMax: (lambda c: MaxNode(), ("left", "right")),
+    S.Filter: (lambda c: FilterNode(), ("operand", "condition")),
+    S.SlidingWindow: (lambda c: _window_class(c.tag)(c.length), ("operand",)),
+    S.Shift: (lambda c: ShiftNode(c.delta), ("operand",)),
+}
+
+
+def node_factory(core):
+    """For a core node other than Input: (a callable building a new gemon node for it,
+    its operands in port order: one for unary nodes, left and right for binary ones)."""
+    make, fields = NODES[type(core)]
+    return (lambda: make(core)), tuple(getattr(core, f) for f in fields)
+
+
 class Builder:
     """Core syntax -> gemon nodes, one node per distinct core node."""
 
@@ -275,65 +312,18 @@ class Builder:
     def build(self, core):
         node = self.nodes.get(core)
         if node is None:
-            node = getattr(self, "build_" + type(core).__name__)(core)
+            if isinstance(core, S.Input):
+                node = VariablePWLNode() if core.interpolation == "linear" else VariablePWCNode()
+            else:
+                make, operands = node_factory(core)
+                node = make()
+                if len(operands) == 1:
+                    self.build(operands[0]).to(node.receive)
+                else:
+                    self.build(operands[0]).to(node.receive_left)
+                    self.build(operands[1]).to(node.receive_right)
             self.nodes[core] = node
         return node
-
-    def unary(self, node, operand):
-        self.build(operand).to(node.receive)
-        return node
-
-    def binary(self, node, left, right):
-        self.build(left).to(node.receive_left)
-        self.build(right).to(node.receive_right)
-        return node
-
-    def build_Input(self, c):
-        return VariablePWLNode() if c.interpolation == "linear" else VariablePWCNode()
-
-    def build_Sum(self, c):
-        return self.binary(SumNode(), c.left, c.right)
-
-    def build_Sub(self, c):
-        return self.binary(SubNode(), c.left, c.right)
-
-    def build_AddConst(self, c):
-        return self.unary(AddConstNode(c.value), c.operand)
-
-    def build_Scale(self, c):
-        return self.unary(MultiplyByConst(c.value), c.operand)
-
-    def build_Threshold(self, c):
-        node = HigherThanNode(c.value) if c.op == ">" else LowerThanNode(c.value)
-        return self.unary(node, c.operand)
-
-    def build_Not(self, c):
-        return self.unary(NotNode(), c.operand)
-
-    def build_And(self, c):
-        return self.binary(AndNode(), c.left, c.right)
-
-    def build_Or(self, c):
-        return self.binary(OrNode(), c.left, c.right)
-
-    def build_Abs(self, c):
-        return self.unary(AbsNode(), c.operand)
-
-    def build_PointMin(self, c):
-        return self.binary(MinNode(), c.left, c.right)
-
-    def build_PointMax(self, c):
-        return self.binary(MaxNode(), c.left, c.right)
-
-    def build_Filter(self, c):
-        return self.binary(FilterNode(), c.operand, c.condition)
-
-    def build_SlidingWindow(self, c):
-        cls = {"Int": IntegralWindowNode, "Min": MinWindowNode, "Max": MaxWindowNode}[c.tag]
-        return self.unary(cls(c.length), c.operand)
-
-    def build_Shift(self, c):
-        return self.unary(ShiftNode(c.delta), c.operand)
 
 
 class Monitor:
