@@ -502,3 +502,17 @@ def test_random_formulas(seed):
     # 3. and gives the same intervals
     data = {name: samples(100 * seed + i, n=250) for i, name in enumerate(sorted(INPUTS))}
     assert run(monitor.inputs, monitor.outputs, data) == run(direct.inputs, outputs, data), source
+
+
+def test_parameters_given_by_the_caller():
+    source = "input x : linear\nparam T = 10\nparam H = T / 2\ne := On[0, T] Int(x) / H\n"
+    default, other = compile_program(source), compile_program(source, params={"T": 4})
+    assert [type(n).__name__ for n in default.nodes] == [type(n).__name__ for n in other.nodes]
+    window = next(n for n in other.nodes if isinstance(n, IntegralWindowNode))
+    scale = next(n for n in other.nodes if isinstance(n, MultiplyByConst))
+    assert window.window.length == 4 and scale.value == 1 / 2   # H = T / 2 follows the new T
+    with pytest.raises(LangError, match="unknown parameter"):
+        compile_program(source, params={"Z": 1})
+    with pytest.raises(LangError, match="expected a number"):
+        compile_program(source, params={"T": "4"})
+

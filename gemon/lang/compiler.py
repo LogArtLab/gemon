@@ -48,8 +48,9 @@ def _describe(value):
 class Lowering:
     """Surface syntax -> core syntax, with name resolution, constant folding and checks."""
 
-    def __init__(self, program: S.Program):
+    def __init__(self, program: S.Program, params=None):
         self.program = program
+        self.overrides = dict(params or {})  # parameter values given by the caller
         self.inputs = {}        # name -> Signal
         self.params = {}        # name -> constant
         self.definitions = {}   # name -> Signal (in source order)
@@ -58,6 +59,9 @@ class Lowering:
     def run(self):
         for item in self.program.items:
             self.declare(item)
+        unknown = sorted(set(self.overrides) - set(self.params))
+        if unknown:
+            raise LangError(f"unknown parameter(s) {', '.join(map(repr, unknown))}: declare them with param")
         return self
 
     def declare(self, item):
@@ -73,6 +77,12 @@ class Lowering:
 
     def declare_ParamDecl(self, item):
         self._new_name(item.name, item.position)
+        if item.name in self.overrides:
+            value = self.overrides[item.name]
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise LangError(f"parameter {item.name!r}: expected a number, got {value!r}", item.position)
+            self.params[item.name] = value
+            return
         value = self.lower(item.value)
         if not _is_const(value):
             raise LangError(f"parameter {item.name!r} must be a constant", item.position)
@@ -356,18 +366,19 @@ class Monitor:
         self.node(name).to(callback)
 
 
-def lower_program(program: S.Program) -> Lowering:
-    return Lowering(program).run()
+def lower_program(program: S.Program, params=None) -> Lowering:
+    return Lowering(program, params).run()
 
 
-def compile_program(text: str) -> Monitor:
-    """Compile a program (text) into a Monitor. Raises LangError on errors."""
-    return build(lower_program(parse(text)))
+def compile_program(text: str, params=None) -> Monitor:
+    """Compile a program (text) into a Monitor. params: {name: number} replaces the
+    values of the declared parameters. Raises LangError on errors."""
+    return build(lower_program(parse(text), params))
 
 
-def compile_file(path: str) -> Monitor:
+def compile_file(path: str, params=None) -> Monitor:
     with open(path) as f:
-        return compile_program(f.read())
+        return compile_program(f.read(), params)
 
 
 def build(lowered: Lowering) -> Monitor:

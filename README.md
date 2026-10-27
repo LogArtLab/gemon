@@ -101,6 +101,9 @@ samples), constant parameters (`param name = expression`) and named formulas
 (`name := expression`); every formula can be observed. Equal sub-formulas, also across
 formulas, are built once.
 
+`compile_program(text, params={"T": 60})` replaces the values of declared parameters (e.g. thresholds
+calibrated in Python); the parameters defined from them follow.
+
 | Construct | Meaning | Nodes |
 |---|---|---|
 | `a + b`, `a - b` | sum, difference of signals | `SumNode`, `SubNode` |
